@@ -145,7 +145,7 @@
             <div class="game-layout">
                 <div class="game-sidebar">
                     <button class="nav-tab-btn active" onclick="switchGameTab(this, 'tab-inicio')">
-                        <i class="fa-solid fa-house"></i> Inicio
+                        <i class="fa-solid fa-house"></i> Inicio <span id="inboxBadge" class="inbox-badge"></span>
                     </button>
                     <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-plantilla')">
                         <i class="fa-solid fa-users"></i> Plantilla
@@ -153,17 +153,20 @@
                     <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-tacticas')">
                         <i class="fa-solid fa-clipboard-user"></i> Tácticas
                     </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-calendario')">
+                        <i class="fa-solid fa-calendar"></i> Calendario
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-mercado')">
+                        <i class="fa-solid fa-cart-shopping"></i> Mercado
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-competiciones')">
+                        <i class="fa-solid fa-trophy"></i> Competiciones
+                    </button>
                     <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-estadio')">
                         <i class="fa-solid fa-building"></i> Estadio
                     </button>
                     <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-dorsales')">
                         <i class="fa-solid fa-tshirt"></i> Dorsales
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-calendario')">
-                        <i class="fa-solid fa-calendar"></i> Calendario
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-competiciones')">
-                        <i class="fa-solid fa-trophy"></i> Competiciones
                     </button>
                 </div>
 
@@ -187,11 +190,8 @@
                                 </button>
                             </div>
                             <div class="dash-card">
-                                <span class="dash-card-title"><i class="fa-solid fa-newspaper"></i> Noticias del Club</span>
-                                <div style="font-size: 17px; color:#94a3b8; display:flex; flex-direction:column; gap:6px;">
-                                    <p>• El nuevo mánager asume el mando con optimismo.</p>
-                                    <p>• La afición agota las entradas para el inicio de temporada.</p>
-                                </div>
+                                <span class="dash-card-title"><i class="fa-solid fa-envelope"></i> Bandeja de Entrada</span>
+                                <div style="font-size: 14px; color:#94a3b8; display:flex; flex-direction:column; gap:2px; overflow-y:auto; flex:1;" id="inboxContainer"></div>
                             </div>
                         </div>
                     </div>
@@ -336,6 +336,30 @@
                         </div>
                     </div>
 
+                    <div id="tab-mercado" class="game-tab-content">
+                        <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
+                            <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+                                <span style="font-size: 13px; color:#38bdf8; font-weight:bold;" id="mercadoPresupuesto">15.0M€</span>
+                                <button class="btn-retro btn-sm" onclick="renderHistorial()" style="font-size:7px;padding:3px 6px;margin-left:auto;"><i class="fa-solid fa-clock-rotate-left"></i> Historial</button>
+                            </div>
+                            <div style="display:flex;gap:4px;flex-shrink:0;">
+                                <input type="text" id="mercadoBuscar" class="form-input" placeholder="🔍 Buscar jugador..." style="font-size:12px;padding:3px;flex:1;" oninput="renderMercado()">
+                            </div>
+                            <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
+                                <select id="filtroPos" class="form-input" style="font-size:10px;padding:2px;flex:1;" onchange="renderMercado()">
+                                    <option value="">Todas posiciones</option>
+                                    <option value="PO">POR</option><option value="DFC">DFC</option><option value="LI">LI</option><option value="LD">LD</option>
+                                    <option value="CAI">CAI</option><option value="CAD">CAD</option>
+                                    <option value="MCD">MCD</option><option value="MC">MC</option><option value="MCO">MCO</option><option value="MI">MI</option><option value="MD">MD</option>
+                                    <option value="EI">EI</option><option value="ED">ED</option><option value="DC">DC</option>
+                                </select>
+                                <input type="number" id="filtroRatingMin" class="form-input" placeholder="Med min" style="font-size:10px;padding:2px;width:48px;" oninput="renderMercado()" min="0" max="99">
+                                <input type="number" id="filtroEdadMin" class="form-input" placeholder="Edad min" style="font-size:10px;padding:2px;width:48px;" oninput="renderMercado()" min="15" max="50">
+                            </div>
+                            <div id="mercadoLista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+                        </div>
+                    </div>
+
                     <div id="tab-competiciones" class="game-tab-content">
                         <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
                             <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: 2px;">
@@ -468,6 +492,16 @@
         </div>
         <div id="rivalModalRatings" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;text-align:center;padding:4px 0;border-bottom:1px solid #1e293b;"></div>
         <div id="rivalModalSquad" style="flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:2px;"></div>
+    </div>
+</div>
+
+<div id="modalHistorial" class="retro-modal-overlay">
+    <div class="retro-modal" style="width: 90%; max-width: 480px; height: 360px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #263342;padding-bottom:6px;">
+            <h3 style="font-family:'Press Start 2P',cursive;font-size:11px;color:#38bdf8;">📜 HISTORIAL DE TRASPASOS</h3>
+            <button class="btn-retro danger btn-sm" onclick="document.getElementById('modalHistorial').classList.remove('active')">✖ CERRAR</button>
+        </div>
+        <div id="historialLista" style="flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:2px;"></div>
     </div>
 </div>
 
