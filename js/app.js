@@ -76,7 +76,7 @@ function flagEmoji(code) {
         nl: '🇳🇱', 'gb': '🇬🇧', eng: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', de: '🇩🇪', pt: '🇵🇹', pl: '🇵🇱',
         hu: '🇭🇺', dk: '🇩🇰', uy: '🇺🇾', se: '🇸🇪', be: '🇧🇪',
         at: '🇦🇹', ch: '🇨🇭', jp: '🇯🇵', kr: '🇰🇷', ng: '🇳🇬',
-        ma: '🇲🇦', sn: '🇸🇳', ci: '🇨🇮', cm: '🇨🇲', gh: '🇬🇭',
+        ma: '🇲🇦', sn: '🇸🇳', ci: '🇨🇮', cm: '🇨🇲', gh: '🇬🇭',         ua: '🇺🇦', tr: '🇹🇷',
         us: '🇺🇸', mx: '🇲🇽', co: '🇨🇴', cl: '🇨🇱', pe: '🇵🇪'
     };
     return flags[code] || '';
@@ -892,6 +892,12 @@ function generarCalendario() {
     var rivales = Database.getTeams(gameState.country, gameState.league).map(function(t){ return t.name; });
     rivales = rivales.filter(function(n){ return n !== gameState.team; });
     if (rivales.length === 0) rivales = ['Rival'];
+    for (var i = rivales.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = rivales[i];
+        rivales[i] = rivales[j];
+        rivales[j] = tmp;
+    }
 
     for (var s = 1; s <= 38; s++) {
         var partidos = [];

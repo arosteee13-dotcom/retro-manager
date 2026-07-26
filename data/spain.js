@@ -6,7 +6,37 @@ Database.register({
             name: 'LaLiga EA Sports',
             desc: 'Máxima categoría',
             teams: [
-                { name: 'Real Madrid', budget: '18.0M€', target: 'Ganar la Liga', rating: 89, stadium: 'Santiago Bernabéu', capacity: 81044, squad: [] },
+                {
+                    name: 'Real Madrid', budget: '18.0M€', target: 'Ganar la Liga', rating: 89, stadium: 'Santiago Bernabéu', capacity: 81044,
+                    squad: [
+                        { id: 1, pos: 'PO', name: 'Thibaut Courtois', dorsal: 1, fullName: 'Thibaut Courtois', nationality: 'be', age: 34, height: 199, rating: 82, stamina: '100%', val: '11.02M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 2, pos: 'PO', name: 'Andriy Lunin', dorsal: 13, fullName: 'Andriy Lunin', nationality: 'ua', age: 27, height: 191, rating: 59, stamina: '100%', val: '9.36M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 3, pos: 'LD', name: 'D. Dumfries', dorsal: 2, fullName: 'Denzel Dumfries', nationality: 'nl', age: 30, height: 188, rating: 86, stamina: '100%', val: '46.11M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 4, pos: 'DFC', name: 'Dean Huijsen', dorsal: 3, fullName: 'Dean Huijsen', nationality: 'es', age: 21, height: 197, rating: 79, stamina: '100%', val: '67M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 5, pos: 'DFC', name: 'A. Rüdiger', dorsal: 22, fullName: 'Antonio Rüdiger', nationality: 'de', age: 33, height: 190, rating: 85, stamina: '100%', val: '11.14M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 6, pos: 'LD', name: 'Alexander-Arnold', dorsal: 66, fullName: 'Trent Alexander-Arnold', nationality: 'eng', age: 27, height: 180, rating: 81, stamina: '100%', val: '50.79M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 7, pos: 'DFC', name: 'I. Konaté', dorsal: 14, fullName: 'Ibrahima Konaté', nationality: 'fr', age: 27, height: 194, rating: 81, stamina: '100%', val: '45.89M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 8, pos: 'LI', name: 'M. Cucurella', dorsal: 18, fullName: 'Marc Cucurella', nationality: 'es', age: 28, height: 173, rating: 85, stamina: '100%', val: '61.27M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 9, pos: 'LI', name: 'Á. Carreras', dorsal: 4, fullName: 'Álvaro Carreras', nationality: 'es', age: 23, height: 186, rating: 77, stamina: '100%', val: '42.31M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 10, pos: 'DFC', name: 'Éder Militão', dorsal: 6, fullName: 'Éder Militão', nationality: 'br', age: 28, height: 186, rating: 79, stamina: '100%', val: '21.51M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 11, pos: 'DFC', name: 'Raúl Asencio', dorsal: 15, fullName: 'Raúl Asencio', nationality: 'es', age: 23, height: 184, rating: 70, stamina: '100%', val: '21.88M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 12, pos: 'LI', name: 'Ferland Mendy', dorsal: 23, fullName: 'Ferland Mendy', nationality: 'fr', age: 31, height: 180, rating: 68, stamina: '100%', val: '5.81M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 13, pos: 'MC', name: 'J. Bellingham', dorsal: 5, fullName: 'Jude Bellingham', nationality: 'eng', age: 23, height: 186, rating: 83, stamina: '100%', val: '148.01M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 14, pos: 'MCO', name: 'Bernardo Silva', dorsal: 10, fullName: 'Bernardo Silva', nationality: 'pt', age: 31, height: 173, rating: 81, stamina: '100%', val: '30.2M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 15, pos: 'MC', name: 'F. Valverde', dorsal: 8, fullName: 'Federico Valverde', nationality: 'uy', age: 28, height: 182, rating: 87, stamina: '100%', val: '102.93M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 16, pos: 'MCD', name: 'A. Tchouaméni', dorsal: 12, fullName: 'Aurélien Tchouaméni', nationality: 'fr', age: 26, height: 188, rating: 81, stamina: '100%', val: '88.01M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 17, pos: 'MCO', name: 'Arda Güler', dorsal: 16, fullName: 'Arda Güler', nationality: 'tr', age: 21, height: 175, rating: 75, stamina: '100%', val: '80.71M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 18, pos: 'MC', name: 'E. Camavinga', dorsal: 19, fullName: 'Eduardo Camavinga', nationality: 'fr', age: 23, height: 182, rating: 73, stamina: '100%', val: '52.36M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 19, pos: 'MI', name: 'T. Pitarch', dorsal: 28, fullName: 'Toni Pitarch', nationality: 'es', age: 18, height: 179, rating: 51, stamina: '100%', val: '2.05M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 20, pos: 'DC', name: 'K. Mbappé', dorsal: 9, fullName: 'Kylian Mbappé', nationality: 'fr', age: 27, height: 180, rating: 89, stamina: '100%', val: '207.47M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 21, pos: 'EI', name: 'Vinícius', dorsal: 7, fullName: 'Vinícius Júnior', nationality: 'br', age: 26, height: 176, rating: 85, stamina: '100%', val: '150.96M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 22, pos: 'ED', name: 'Rodrygo', dorsal: 11, fullName: 'Rodrygo', nationality: 'br', age: 25, height: 174, rating: 77, stamina: '100%', val: '59.62M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 23, pos: 'DC', name: 'Endrick', dorsal: 17, fullName: 'Endrick', nationality: 'br', age: 20, height: 172, rating: 66, stamina: '100%', val: '39.27M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 24, pos: 'EI', name: 'F. Mastantuono', dorsal: 20, fullName: 'Franco Mastantuono', nationality: 'ar', age: 18, height: 178, rating: 66, stamina: '100%', val: '44.91M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 25, pos: 'EI', name: 'Brahim Díaz', dorsal: 21, fullName: 'Brahim Díaz', nationality: 'ma', age: 26, height: 170, rating: 72, stamina: '100%', val: '36.68M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 26, pos: 'DC', name: 'Gonzalo García', dorsal: 24, fullName: 'Gonzalo García', nationality: 'es', age: 22, height: 182, rating: 69, stamina: '100%', val: '26.69M€', statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } }
+                    ]
+                },
                 {
                     name: 'FC Barcelona', budget: '15.0M€', target: 'Ganar la Liga', rating: 87, stadium: 'Spotify Camp Nou', capacity: 99354,
                     squad: [
