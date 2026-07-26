@@ -1156,8 +1156,10 @@ function aplicarLesiones(xi, equipoNombre) {
         var stam = parseInt(p.stamina) || 100;
         if (stam < 60 && Math.random() < 0.15) {
             p.lesionSemanas = Math.floor(Math.random() * 3) + 1;
-            enviarMensaje('Servicio Médico', 'Parte de Lesión',
-                p.name + ' ha sufrido una lesión durante el partido. El tiempo estimado de baja es de ' + p.lesionSemanas + ' semana' + (p.lesionSemanas > 1 ? 's' : '') + '.');
+            if (equipoNombre === gameState.team) {
+                enviarMensaje('Servicio Médico', 'Parte de Lesión',
+                    p.name + ' ha sufrido una lesión durante el partido. El tiempo estimado de baja es de ' + p.lesionSemanas + ' semana' + (p.lesionSemanas > 1 ? 's' : '') + '.');
+            }
         }
     }
 }
@@ -1878,7 +1880,6 @@ function nextMatch() {
         'El ' + gameState.team + ' se prepara para la jornada ' + gameState.matchday + '. Próximo rival: ' + gameState.opponent + '.');
     renderInbox();
 
-    _tacticInitDone = false;
     goToScreen('screen-game');
     var btnInicio = document.querySelector('.nav-tab-btn');
     if (btnInicio) switchGameTab(btnInicio, 'tab-inicio');

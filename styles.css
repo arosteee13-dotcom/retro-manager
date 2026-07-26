@@ -425,7 +425,9 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
+
 
 .dash-card-title {
     font-size: 16px;
