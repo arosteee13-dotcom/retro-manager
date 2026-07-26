@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Retro Football Manager - Menú Principal y Juego</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="device-container">
+    <div class="scanline"></div>
+
+    <div class="top-bar">
+        <span class="title" id="topBarTitle"><i class="fa-solid fa-futbol"></i> PC FOOTBALL '90s</span>
+        <span id="stepTitle" class="step-indicator">MENÚ PRINCIPAL</span>
+    </div>
+
+    <div class="content-frame">
+
+        <div id="screen-menu" class="screen active">
+            <div class="main-menu-layout">
+                <div class="logo-box">
+                    <h1>RETRO MANAGER<br>SEASON 90s</h1>
+                    <p><i class="fa-solid fa-trophy"></i> EDICIÓN MÓVIL</p>
+                </div>
+                <div class="menu-buttons">
+                    <button class="btn-retro green" onclick="goToScreen('screen-country')">
+                        <i class="fa-solid fa-play"></i> NUEVA PARTIDA
+                    </button>
+                    <button class="btn-retro" onclick="openSlotsModal('load')">
+                        <i class="fa-solid fa-floppy-disk"></i> CARGAR PARTIDA
+                    </button>
+                    <button class="btn-retro yellow" onclick="goToScreen('screen-settings')">
+                        <i class="fa-solid fa-gear"></i> AJUSTES
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-country" class="screen">
+            <div class="selection-grid" id="countryGrid"></div>
+            <div class="footer-nav">
+                <button class="btn-retro danger" onclick="goToScreen('screen-menu')">ATRÁS</button>
+                <button class="btn-retro green" onclick="goToScreen('screen-league')">SIGUIENTE</button>
+            </div>
+        </div>
+
+        <div id="screen-league" class="screen">
+            <div class="selection-grid" id="leagueGrid" style="grid-template-columns: 1fr 1fr;"></div>
+            <div class="footer-nav">
+                <button class="btn-retro danger" onclick="goToScreen('screen-country')">ATRÁS</button>
+                <button class="btn-retro green" onclick="goToScreen('screen-team')">SIGUIENTE</button>
+            </div>
+        </div>
+
+        <div id="screen-team" class="screen">
+            <div class="team-selection-layout">
+                <div class="team-list" id="teamList"></div>
+                <div class="team-detail-panel">
+                    <div>
+                        <h2 id="detailTeamName" style="color: #6ee7b7; font-size: 22px; margin-bottom: 8px;">Selecciona un equipo</h2>
+                        <div class="stat-row">
+                            <span>Presupuesto:</span>
+                            <span id="detailBudget" class="stat-val">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Objetivo:</span>
+                            <span id="detailTarget" class="stat-val">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Nivel Plantilla:</span>
+                            <span id="detailRating" class="stat-val">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Estadio:</span>
+                            <span id="detailStadium" class="stat-val">-</span>
+                        </div>
+                    </div>
+                    <p style="font-size: 16px; color: #64748b; margin-top: 6px;">
+                        <i class="fa-solid fa-circle-info"></i> Elige un equipo para comenzar tu temporada.
+                    </p>
+                    <button class="btn-retro yellow btn-sm" onclick="previewSquad()" style="margin-top: 6px;">
+                        <i class="fa-solid fa-users"></i> VER PLANTILLA
+                    </button>
+                </div>
+            </div>
+            <div class="footer-nav">
+                <button class="btn-retro danger" onclick="goToScreen('screen-league')">ATRÁS</button>
+                <button class="btn-retro green" onclick="goToScreen('screen-manager')">SIGUIENTE</button>
+            </div>
+        </div>
+
+        <div id="screen-manager" class="screen">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; height: 100%;">
+                <div>
+                    <div class="form-group">
+                        <label>Nombre del Mánager:</label>
+                        <input type="text" class="form-input" value="Mánager Retro" id="managerName">
+                    </div>
+                    <div class="form-group">
+                        <label>Nacionalidad:</label>
+                        <input type="text" class="form-input" value="Española" readonly style="opacity:0.7;">
+                    </div>
+                </div>
+
+                <div style="background: #111823; border: 1px solid #263342; padding: 12px; border-radius: 4px;">
+                    <h3 style="color: #38bdf8; font-size: 18px; margin-bottom: 10px;">RESUMEN DE PARTIDA</h3>
+                    <p style="font-size: 18px; margin-bottom: 4px; color:#94a3b8;">País: <span id="summaryCountry" style="color:#f1f5f9;">España</span></p>
+                    <p style="font-size: 18px; margin-bottom: 4px; color:#94a3b8;">Liga: <span id="summaryLeague" style="color:#f1f5f9;">1ª División</span></p>
+                    <p style="font-size: 18px; margin-bottom: 4px; color:#94a3b8;">Equipo: <span id="summaryTeam" style="color:#6ee7b7;">Real Madrid</span></p>
+                </div>
+            </div>
+            <div class="footer-nav">
+                <button class="btn-retro danger" onclick="goToScreen('screen-team')">ATRÁS</button>
+                <button class="btn-retro green" onclick="startGame()">
+                    <i class="fa-solid fa-circle-play"></i> INICIAR PARTIDA
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-settings" class="screen">
+            <div style="padding: 10px;">
+                <h2 style="color: #cbd5e1; margin-bottom: 15px; font-size: 22px;">CONFIGURACIÓN</h2>
+                <div style="font-size: 20px; color:#94a3b8; display: flex; flex-direction: column; gap: 12px;">
+                    <label style="cursor:pointer;"><input type="checkbox" checked> Efectos de Sonido 8-Bit</label>
+                    <label style="cursor:pointer;"><input type="checkbox" checked> Escanlines CRT Retro</label>
+                    <label style="cursor:pointer;"><input type="checkbox"> Modo Simulación Rápida</label>
+                </div>
+                <button class="btn-retro green" onclick="openSlotsModal('save')" style="margin-top: 10px; width: 100%;">
+                    <i class="fa-solid fa-floppy-disk"></i> GUARDAR PARTIDA
+                </button>
+            </div>
+            <div class="footer-nav">
+                <button class="btn-retro danger" onclick="goToScreen('screen-menu')">VOLVER AL MENÚ</button>
+            </div>
+        </div>
+
+        <div id="screen-game" class="screen">
+            <div class="game-layout">
+                <div class="game-sidebar">
+                    <button class="nav-tab-btn active" onclick="switchGameTab(this, 'tab-inicio')">
+                        <i class="fa-solid fa-house"></i> Inicio
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-plantilla')">
+                        <i class="fa-solid fa-users"></i> Plantilla
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-tacticas')">
+                        <i class="fa-solid fa-clipboard-user"></i> Tácticas
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-estadio')">
+                        <i class="fa-solid fa-building"></i> Estadio
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-dorsales')">
+                        <i class="fa-solid fa-tshirt"></i> Dorsales
+                    </button>
+                </div>
+
+                <div class="game-main-area">
+
+                    <div id="tab-inicio" class="game-tab-content active">
+                        <div class="dashboard-grid">
+                            <div class="dash-card">
+                                <span class="dash-card-title"><i class="fa-solid fa-calendar-day"></i> Próximo Partido</span>
+                                <div style="text-align: center; margin: auto 0;">
+                                    <p style="font-size: 16px; color:#94a3b8;">Jornada 1 - Liga</p>
+                                    <div style="font-size: 22px; color:#6ee7b7; margin: 4px 0; line-height: 1.3;">
+                                        <div id="dashHomeTeam">Real Madrid</div>
+                                        <div style="font-size: 14px; color:#64748b;">VS</div>
+                                        <div id="dashAwayTeam">FC Barcelona</div>
+                                    </div>
+                                    <p style="font-size: 18px; color:#cbd5e1;" id="dashStadiumName"><i class="fa-solid fa-location-dot"></i> Santiago Bernabéu</p>
+                                </div>
+                                <button class="btn-retro green" id="btnPlayMatch" onclick="runMatchSimulation()" style="padding: 10px 6px; margin-top: 8px;">
+                                    <i class="fa-solid fa-play"></i> JUGAR PARTIDO
+                                </button>
+                            </div>
+                            <div class="dash-card">
+                                <span class="dash-card-title"><i class="fa-solid fa-newspaper"></i> Noticias del Club</span>
+                                <div style="font-size: 17px; color:#94a3b8; display:flex; flex-direction:column; gap:6px;">
+                                    <p>• El nuevo mánager asume el mando con optimismo.</p>
+                                    <p>• La afición agota las entradas para el inicio de temporada.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-plantilla" class="game-tab-content">
+                        <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                            <button class="btn-retro btn-sm" onclick="switchSquadSubTab(this, 'squad-info')" style="flex:1;">
+                                <i class="fa-solid fa-circle-info"></i> Info
+                            </button>
+                            <button class="btn-retro btn-sm" onclick="switchSquadSubTab(this, 'squad-stats')" style="flex:1;">
+                                <i class="fa-solid fa-chart-simple"></i> Rendimiento
+                            </button>
+                        </div>
+                        <div id="squad-info" class="squad-subtab" style="display: flex; flex-direction: column; flex: 1;">
+                            <div class="squad-table-wrapper">
+                                <table class="squad-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Pos</th>
+                                            <th>Jugador</th>
+                                            <th>Nac</th>
+                                            <th>Edad</th>
+                                            <th>Med</th>
+                                            <th>Est</th>
+                                            <th>Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="squadTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div id="squad-stats" class="squad-subtab" style="display: none; flex-direction: column; flex: 1;">
+                            <div class="squad-table-wrapper">
+                                <table class="squad-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Pos</th>
+                                            <th>Jugador</th>
+                                            <th>Nac</th>
+                                            <th>PJ</th>
+                                            <th>GOL</th>
+                                            <th>ASI</th>
+                                            <th>TA</th>
+                                            <th>TR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="squadStatsBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-tacticas" class="game-tab-content">
+                        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: 4px;">
+                            <span style="font-size: 13px; color:#94a3b8; min-width: 70px;">Formación:</span>
+                            <select id="tacticFormation" class="form-input" style="font-size: 14px; padding: 3px; flex: 1;" onchange="onFormationChange()">
+                                <option>4-4-2 Estándar</option>
+                                <option>4-3-3 Ofensivo</option>
+                                <option>5-3-2 Defensivo</option>
+                            </select>
+                            <button class="btn-retro btn-sm" onclick="onFormationChange()" style="font-size: 7px; padding: 4px 6px;"><i class="fa-solid fa-arrows-rotate"></i> Auto</button>
+                            <div id="teamRatingDisplay" style="background:#111823;border:1px solid #263342;border-radius:3px;padding:4px;flex-shrink:0;min-width:180px;"></div>
+                        </div>
+                        <div style="display: flex; gap: 6px; flex: 1; min-height: 0;">
+                            <div id="tacticXIList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; background:#0f141c; border:1px solid #222d3d; border-radius:3px; padding:4px;"></div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-height: 0; background:#0f141c; border:1px solid #222d3d; border-radius:3px; padding:4px;">
+                                <div id="tacticRightList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-estadio" class="game-tab-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="dash-card">
+                                <span class="dash-card-title"><i class="fa-solid fa-landmark"></i> Datos del Coliseo</span>
+                                <div class="stat-row">
+                                    <span>Nombre:</span>
+                                    <span id="stadiumName" class="stat-val">Santiago Bernabéu</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Aforo:</span>
+                                    <span id="stadiumCapacity" class="stat-val">81.044 esp.</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Precio Entrada:</span>
+                                    <span class="stat-val">25 €</span>
+                                </div>
+                            </div>
+                            <div class="dash-card" style="justify-content: space-between;">
+                                <div>
+                                    <span class="dash-card-title"><i class="fa-solid fa-wrench"></i> Mejoras</span>
+                                    <p style="font-size: 16px; color:#94a3b8;">Ampliar grada norte (+5.000 asientos)</p>
+                                    <p style="font-size: 18px; color:#10b981;">Coste: 3.0M€</p>
+                                </div>
+                                <button class="btn-retro green btn-sm" onclick="showModal('ESTADIO', 'Propuesta de ampliación enviada a la junta directiva.')">
+                                    AMPLIAR ESTADIO
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-partido" class="game-tab-content">
+                        <div style="display: flex; flex-direction: column; gap: 8px; height: 100%;">
+                            <div style="background: #182230; border: 1px solid #38bdf8; border-radius: 4px; padding: 8px; text-align: center;">
+                                <div style="font-size: 16px; color: #38bdf8; font-family: 'Press Start 2P', cursive;" id="matchClock">00'</div>
+                                <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 4px;">
+                                    <span style="font-size: 22px; font-weight: bold; color: #f1f5f9;" id="matchHomeTeam">Real Madrid</span>
+                                    <span style="font-size: 28px; color: #6ee7b7; font-family: 'Press Start 2P', cursive;" id="matchScore">0 - 0</span>
+                                    <span style="font-size: 22px; font-weight: bold; color: #f1f5f9;" id="matchAwayTeam">FC Barcelona</span>
+                                </div>
+                            </div>
+                            <div id="matchCommentary" style="flex: 1; background: #0c1017; border: 1px solid #222d3d; padding: 8px; font-size: 18px; color: #94a3b8; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                                <p style="color: #38bdf8;">El árbitro pita el inicio del encuentro...</p>
+                            </div>
+                            <button id="btnContinueMatch" class="btn-retro green" onclick="nextMatch()" style="display: none; padding: 10px 6px;">
+                                <i class="fa-solid fa-forward"></i> SIGUIENTE PARTIDO
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tab-dorsales" class="game-tab-content">
+                        <div style="display: flex; flex-direction: column; gap: 6px; height: 100%;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px; color:#94a3b8; min-width: 50px;">Jugador:</span>
+                                <select id="dorsalPlayerSelect" class="form-input" style="font-size: 16px; padding: 4px; flex: 1;"></select>
+                            </div>
+                            <div style="font-size: 14px; color: #64748b;">
+                                <i class="fa-solid fa-circle-info"></i> Selecciona un jugador y luego haz clic en un número para asignarlo.
+                            </div>
+                            <div id="tabDorsalGrid" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; overflow-y: auto; flex: 1; padding: 4px 2px;"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="gameActionPanel" class="game-action-panel">
+                    <div>
+                        <div class="stat-row">
+                            <span>Club:</span>
+                            <span id="gameTeamShort" class="stat-val" style="color:#6ee7b7;">R. Madrid</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Mánager:</span>
+                            <span id="gameManagerShort" class="stat-val">Retro</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Fondos:</span>
+                            <span id="gameBudget" class="stat-val" style="color:#facc15;">15.0M€</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn-retro green btn-sm" onclick="openSlotsModal('save')">
+                            <i class="fa-solid fa-floppy-disk"></i> GUARDAR PARTIDA
+                        </button>
+                        <button class="btn-retro danger btn-sm" onclick="goToScreen('screen-menu')">
+                            <i class="fa-solid fa-right-from-bracket"></i> SALIR AL MENÚ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="retroModal" class="retro-modal-overlay">
+    <div class="retro-modal">
+        <h3 id="modalTitle">TITULO</h3>
+        <p id="modalBody">Mensaje aquí...</p>
+        <button class="btn-retro green btn-sm" onclick="closeModal()" style="align-self: flex-end;">ACEPTAR</button>
+    </div>
+</div>
+
+<div id="squadModal" class="retro-modal-overlay">
+    <div class="retro-modal" style="width: 95%; max-width: 600px;">
+        <h3 id="squadModalTitle">PLANTILLA</h3>
+        <div class="squad-table-wrapper" id="squadModalBody" style="max-height: 280px;"></div>
+        <button class="btn-retro danger btn-sm" onclick="closeSquadModal()" style="align-self: flex-end;">CERRAR</button>
+    </div>
+</div>
+
+<div id="slotsModal" class="retro-modal-overlay">
+    <div class="retro-modal" style="width: 95%; max-width: 550px;">
+        <h3 id="slotsModalTitle">CARGAR PARTIDA</h3>
+        <div id="slotsContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;"></div>
+        <button class="btn-retro danger btn-sm" onclick="closeSlotsModal()" style="align-self: flex-end;">CANCELAR</button>
+    </div>
+</div>
+
+<div id="playerModal" class="retro-modal-overlay">
+    <div class="retro-modal" style="width: 90%; max-width: 400px; height: 290px;">
+        <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #263342; padding-bottom: 6px;">
+            <span id="playerModalDorsal" style="font-family: 'Press Start 2P', cursive; font-size: 24px; color: #38bdf8; min-width: 36px; text-align: center;">#</span>
+            <span id="playerModalPos" class="pos-badge" style="font-size: 18px; width: 44px; padding: 4px 0;">PO</span>
+            <div style="flex: 1;">
+                <h3 id="playerModalName" style="font-family: 'Press Start 2P', cursive; font-size: 11px; color: #f1f5f9; line-height: 1.4;">NOMBRE</h3>
+                <span id="playerModalFullName" style="font-size: 16px; color: #94a3b8;"></span>
+                <span id="playerModalNation" style="font-size: 22px; display: block;"></span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 4px; margin: 4px 0;">
+            <button class="btn-retro btn-sm" onclick="switchPlayerSubTab(this, 'pinfo')" style="flex:1; font-size: 8px;">Info</button>
+            <button class="btn-retro btn-sm" onclick="switchPlayerSubTab(this, 'pstats')" style="flex:1; font-size: 8px;">Rendimiento</button>
+        </div>
+        <div id="pinfo" class="player-subtab" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; flex: 1;">
+            <div class="stat-row" style="border: none; padding: 2px 0;"><span>Edad</span><span id="playerModalAge" class="stat-val">-</span></div>
+            <div class="stat-row" style="border: none; padding: 2px 0;"><span>Altura</span><span id="playerModalHeight" class="stat-val">-</span></div>
+            <div class="stat-row" style="border: none; padding: 2px 0;"><span>Media</span><span id="playerModalRating" class="stat-val" style="color:#6ee7b7;">-</span></div>
+            <div class="stat-row" style="border: none; padding: 2px 0;"><span>Valor</span><span id="playerModalVal" class="stat-val" style="color:#facc15;">-</span></div>
+            <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Estado</span><span id="playerModalStamina" class="stat-val" style="color:#10b981;">-</span></div>
+        </div>
+        <div id="pstats" class="player-subtab" style="display: none; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 4px; flex: 1; padding: 4px 0; text-align: center;">
+            <div><span style="font-size: 12px; color:#94a3b8;">PJ</span><br><span id="pPJ" class="stat-val">0</span></div>
+            <div><span style="font-size: 12px; color:#94a3b8;">GOL</span><br><span id="pGOL" class="stat-val" style="color:#10b981;">0</span></div>
+            <div><span style="font-size: 12px; color:#94a3b8;">ASI</span><br><span id="pASI" class="stat-val" style="color:#38bdf8;">0</span></div>
+            <div><span style="font-size: 12px; color:#94a3b8;">TA</span><br><span id="pTA" class="stat-val" style="color:#facc15;">0</span></div>
+            <div><span style="font-size: 12px; color:#94a3b8;">TR</span><br><span id="pTR" class="stat-val" style="color:#fca5a5;">0</span></div>
+        </div>
+        <button class="btn-retro danger btn-sm" onclick="closePlayerModal()" style="align-self: flex-end;">CERRAR</button>
+    </div>
+</div>
+
+<script src="js/database.js"></script>
+<script src="data/spain.js"></script>
+<script src="data/england.js"></script>
+<script src="data/italy.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
