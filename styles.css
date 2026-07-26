@@ -727,6 +727,102 @@ body {
     padding-top: 6px;
 }
 
+.week-card {
+    background: #131a24;
+    border: 1px solid #263342;
+    border-radius: 4px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.week-card.current {
+    border-color: #38bdf8;
+    background: #17253b;
+}
+.week-header {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    color: #38bdf8;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 3px;
+    margin-bottom: 2px;
+}
+.match-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    padding: 2px 0;
+}
+.match-row.match-next {
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: 2px;
+    padding: 2px 4px;
+    margin: 0 -4px;
+}
+.match-rival {
+    flex: 1;
+    color: #e2e8f0;
+}
+.match-cond {
+    font-size: 11px;
+    color: #94a3b8;
+    min-width: 20px;
+    text-align: center;
+}
+.comp-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    min-width: 50px;
+    text-align: center;
+}
+.comp-badge.laliga { background: #b91c1c; color: #fff; }
+.comp-badge.copa { background: #a16207; color: #fff; }
+.comp-badge.champions { background: #1e3a8a; color: #fff; }
+.result-badge {
+    font-size: 11px;
+    min-width: 64px;
+    text-align: right;
+}
+.result-badge.pendiente { color: #94a3b8; font-style: italic; }
+.result-badge.victoria { color: #22c55e; font-weight: bold; }
+.result-badge.empate { color: #eab308; font-weight: bold; }
+.result-badge.derrota { color: #ef4444; font-weight: bold; }
+.cond-local { color: #22c55e; font-size: 13px; }
+.cond-visit { color: #f97316; font-size: 13px; }
+
+.tabla-clasificacion {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.tabla-clasificacion th {
+    position: sticky;
+    top: 0;
+    background: #182230;
+    color: #94a3b8;
+    padding: 4px 3px;
+    border-bottom: 1px solid #2d3d54;
+    font-weight: normal;
+    text-align: center;
+    font-size: 11px;
+}
+.tabla-clasificacion th:first-child { text-align: center; width: 28px; }
+.tabla-clasificacion th:nth-child(2) { text-align: left; }
+.tabla-clasificacion td {
+    padding: 3px 3px;
+    border-bottom: 1px solid #1b2636;
+    color: #cbd5e1;
+    text-align: center;
+    font-size: 12px;
+}
+.tabla-clasificacion td.col-equipo { text-align: left; }
+.tabla-clasificacion td.col-pts { font-weight: bold; color: #f1f5f9; }
+.tabla-clasificacion tr:hover td { background: rgba(255,255,255,0.03); }
+
 ::-webkit-scrollbar {
     width: 6px;
 }

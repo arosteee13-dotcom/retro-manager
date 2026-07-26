@@ -13,7 +13,11 @@ const gameState = {
     currentDate: 'Temporada 2026-27 - Jornada 1',
     slotId: 0,
     matchday: 1,
-    totalMatchdays: 38
+    totalMatchdays: 38,
+    calendario: [],
+    calendarioGenerado: false,
+    fixture: [],
+    fixtureGenerado: false
 };
 
 const screenTitles = {
@@ -213,25 +217,32 @@ function startGame() {
         gameState.squad = generateSquad(gameState.rating);
     }
 
-    const teams = Database.getTeams(gameState.country, gameState.league);
-    const opponentTeam = teams.find(function (t) { return t.name !== gameState.team; }) || teams[0];
-    gameState.opponent = opponentTeam ? opponentTeam.name : 'FC Barcelona';
+    renderSquadTable();
+    asignarGruposIniciales();
+    renderTacticPitch();
+    generarCalendario();
+
+    if (gameState.calendario && gameState.calendario[0]) {
+        var p = gameState.calendario[0].partidos[0];
+        gameState.opponent = p ? p.rival : 'FC Barcelona';
+    } else {
+        var teams = Database.getTeams(gameState.country, gameState.league);
+        var opponentTeam = teams.find(function (t) { return t.name !== gameState.team; }) || teams[0];
+        gameState.opponent = opponentTeam ? opponentTeam.name : 'FC Barcelona';
+    }
 
     document.getElementById('topBarTitle').innerHTML = '<i class="fa-solid fa-futbol"></i> ' + gameState.team.toUpperCase();
     document.getElementById('gameTeamShort').innerText = gameState.team;
     document.getElementById('gameManagerShort').innerText = gameState.manager;
     document.getElementById('gameBudget').innerText = gameState.budget;
 
+    document.getElementById('dashJornada').innerText = 'Jornada ' + (gameState.matchday || 1) + ' - Liga';
     document.getElementById('dashHomeTeam').innerText = gameState.team;
     document.getElementById('dashAwayTeam').innerText = gameState.opponent;
     document.getElementById('dashStadiumName').innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + gameState.stadium;
 
     document.getElementById('stadiumName').innerText = gameState.stadium;
     document.getElementById('stadiumCapacity').innerText = gameState.capacity.toLocaleString() + ' esp.';
-
-    renderSquadTable();
-    asignarGruposIniciales();
-    renderTacticPitch();
 
     goToScreen('screen-game');
 }
@@ -258,6 +269,13 @@ function switchGameTab(btn, tabId) {
     }
     if (tabId === 'tab-tacticas') {
         renderTacticas();
+    }
+    if (tabId === 'tab-calendario') {
+        renderCalendario();
+    }
+    if (tabId === 'tab-competiciones') {
+        poblarSelectoresClasificacion();
+        renderClasificacion();
     }
 }
 
@@ -538,6 +556,275 @@ function asignarGruposIniciales() {
 
 var _tacticInitDone = false;
 
+function simularResultado(ratingL, ratingV) {
+    var probGanaL = ratingL / (ratingL + ratingV);
+    var golesL = 0, golesV = 0;
+    for (var i = 0; i < 90; i++) {
+        if (Math.random() < 0.015 * (ratingL / 100)) {
+            if (Math.random() < probGanaL) golesL++;
+            else golesV++;
+        }
+    }
+    return { golesL: golesL, golesV: golesV };
+}
+
+function generarFixture() {
+    if (gameState.fixtureGenerado) return;
+    gameState.fixture = [];
+
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    if (!equipos || equipos.length === 0) return;
+    var nombres = equipos.map(function(t){ return t.name; });
+    var ratings = {};
+    equipos.forEach(function(t){ ratings[t.name] = t.rating; });
+    ratings[gameState.team] = gameState.rating;
+
+    var n = nombres.length;
+    var mitad = n / 2;
+    var ronda = nombres.slice();
+
+    for (var jornada = 0; jornada < 38; jornada++) {
+        var partidosJ = [];
+        for (var m = 0; m < mitad; m++) {
+            var local = ronda[m];
+            var visit = ronda[n - 1 - m];
+            if (jornada % 2 === 1) { var tmp = local; local = visit; visit = tmp; }
+
+            var rL = ratings[local] || 75;
+            var rV = ratings[visit] || 75;
+            var res = simularResultado(rL, rV);
+
+            partidosJ.push({ local: local, visitante: visit, golesL: res.golesL, golesV: res.golesV, jugado: true });
+        }
+
+        gameState.fixture.push({ jornada: jornada + 1, partidos: partidosJ });
+
+        ronda.splice(1, 0, ronda.pop());
+    }
+
+    gameState.fixtureGenerado = true;
+}
+
+function generarCalendario() {
+    if (gameState.calendarioGenerado) return;
+    gameState.calendario = [];
+    var rivales = Database.getTeams(gameState.country, gameState.league).map(function(t){ return t.name; });
+    rivales = rivales.filter(function(n){ return n !== gameState.team; });
+    if (rivales.length === 0) rivales = ['Rival'];
+
+    for (var s = 1; s <= 38; s++) {
+        var partidos = [];
+
+        var rival = rivales[(s - 1) % rivales.length];
+        var cond = (s % 2 === 1) ? 'C' : 'V';
+        partidos.push({ competicion: 'LaLiga', rival: rival, condicion: cond, jugado: false, resultado: null });
+
+        if (s % 5 === 0) {
+            var copaRival = rivales[(s + 3) % rivales.length];
+            partidos.push({ competicion: (s % 10 === 0) ? 'Champions' : 'Copa', rival: copaRival, condicion: (s % 3 === 0) ? 'C' : 'V', jugado: false, resultado: null });
+        }
+
+        gameState.calendario.push({ semana: s, partidos: partidos });
+    }
+    gameState.calendarioGenerado = true;
+    generarFixture();
+}
+
+function renderCalendario() {
+    var container = document.getElementById('calendarioList');
+    if (!container) return;
+    if (!gameState.calendario || gameState.calendario.length === 0) generarCalendario();
+    if (gameState.squad && gameState.squad.length === 0) { container.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">Inicia una partida para ver el calendario.</div>'; return; }
+
+    var currentWeek = gameState.matchday || 1;
+    var html = '';
+    for (var s = 0; s < gameState.calendario.length; s++) {
+        var semana = gameState.calendario[s];
+        var esActual = (semana.semana === currentWeek);
+        var claseCard = 'week-card' + (esActual ? ' current' : '');
+
+        html += '<div class="' + claseCard + '">';
+        html += '<div class="week-header">Semana ' + semana.semana + '</div>';
+
+        for (var p = 0; p < semana.partidos.length; p++) {
+            var partido = semana.partidos[p];
+            var badgeComp = '';
+            if (partido.competicion === 'LaLiga') badgeComp = '<span class="comp-badge laliga">LaLiga</span>';
+            else if (partido.competicion === 'Copa') badgeComp = '<span class="comp-badge copa">Copa</span>';
+            else badgeComp = '<span class="comp-badge champions">Champions</span>';
+
+            var condText = partido.condicion === 'C' ? '<span class="cond-local"><i class="fa-solid fa-house"></i></span>' : '<span class="cond-visit"><i class="fa-solid fa-arrow-right"></i></span>';
+            var badgeRes = '';
+            if (!partido.jugado) {
+                badgeRes = '<span class="result-badge pendiente">Pendiente</span>';
+            } else if (partido.resultado) {
+                var gf = partido.resultado.golesFavor;
+                var gc = partido.resultado.golesContra;
+                if (gf > gc) badgeRes = '<span class="result-badge victoria">' + gf + '-' + gc + ' 🟢</span>';
+                else if (gf === gc) badgeRes = '<span class="result-badge empate">' + gf + '-' + gc + ' 🟡</span>';
+                else badgeRes = '<span class="result-badge derrota">' + gf + '-' + gc + ' 🔴</span>';
+            }
+
+            html += '<div class="match-row' + (esActual && !partido.jugado ? ' match-next' : '') + '">';
+            html += badgeComp + ' <span class="match-rival">' + partido.rival + '</span> <span class="match-cond">' + condText + '</span> ' + badgeRes;
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function getColorPosicion(pos) {
+    if (pos === 1) return '#AAE139';
+    if (pos >= 2 && pos <= 4) return '#49CB2B';
+    if (pos === 5) return '#38D996';
+    if (pos === 6) return '#5694D8';
+    if (pos >= 7 && pos <= 17) return '#BCBCBC';
+    if (pos >= 18 && pos <= 20) return '#ED3B46';
+    return '#BCBCBC';
+}
+
+function calcularClasificacion(equipos, fixture, hastaJornada) {
+    var stats = {};
+    equipos.forEach(function(t){
+        stats[t.name] = { nombre: t.name, rating: t.rating, pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0, pts: 0 };
+    });
+
+    if (gameState.team && stats[gameState.team]) stats[gameState.team].rating = gameState.rating;
+
+    for (var j = 0; j < fixture.length && j < hastaJornada; j++) {
+        var jornada = fixture[j];
+        if (!jornada) continue;
+        for (var m = 0; m < jornada.partidos.length; m++) {
+            var p = jornada.partidos[m];
+            if (!p.jugado) continue;
+            if (stats[p.local]) {
+                stats[p.local].pj++;
+                stats[p.local].gf += p.golesL;
+                stats[p.local].gc += p.golesV;
+                if (p.golesL > p.golesV) { stats[p.local].g++; stats[p.local].pts += 3; }
+                else if (p.golesL === p.golesV) { stats[p.local].e++; stats[p.local].pts += 1; }
+                else stats[p.local].p++;
+            }
+            if (stats[p.visitante]) {
+                stats[p.visitante].pj++;
+                stats[p.visitante].gf += p.golesV;
+                stats[p.visitante].gc += p.golesL;
+                if (p.golesV > p.golesL) { stats[p.visitante].g++; stats[p.visitante].pts += 3; }
+                else if (p.golesV === p.golesL) { stats[p.visitante].e++; stats[p.visitante].pts += 1; }
+                else stats[p.visitante].p++;
+            }
+        }
+    }
+
+    var tabla = [];
+    for (var nom in stats) tabla.push(stats[nom]);
+
+    tabla.sort(function(a, b){
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        var dgA = a.gf - a.gc;
+        var dgB = b.gf - b.gc;
+        if (dgB !== dgA) return dgB - dgA;
+        return b.gf - a.gf;
+    });
+
+    return tabla;
+}
+
+function poblarSelectoresClasificacion() {
+    var selPais = document.getElementById('selClasificacionPais');
+    var selLiga = document.getElementById('selClasificacionLiga');
+    if (!selPais || !selLiga) return;
+
+    if (selPais.options.length === 0) {
+        var paises = Database.getCountries();
+        paises.forEach(function(c){
+            var opt = document.createElement('option');
+            opt.value = c.name;
+            opt.innerText = c.icon + ' ' + c.name;
+            if (c.name === gameState.country) opt.selected = true;
+            selPais.appendChild(opt);
+        });
+        selPais.onchange = function(){
+            selLiga.innerHTML = '';
+            var ligas2 = Database.getLeagues(this.value);
+            ligas2.forEach(function(l){
+                var opt = document.createElement('option');
+                opt.value = l.name;
+                opt.innerText = l.name;
+                selLiga.appendChild(opt);
+            });
+            renderClasificacion();
+        };
+    }
+    if (selLiga.options.length === 0) {
+        var ligas = Database.getLeagues(gameState.country);
+        ligas.forEach(function(l){
+            var opt = document.createElement('option');
+            opt.value = l.name;
+            opt.innerText = l.name;
+            if (l.name === gameState.league) opt.selected = true;
+            selLiga.appendChild(opt);
+        });
+        selLiga.onchange = function(){ renderClasificacion(); };
+    }
+}
+
+function renderClasificacion() {
+    var container = document.getElementById('clasificacionBody');
+    var leyenda = document.getElementById('leyendaColores');
+    if (!container) return;
+
+    var selPais = document.getElementById('selClasificacionPais');
+    var selLiga = document.getElementById('selClasificacionLiga');
+    var paisSel = selPais ? selPais.value : gameState.country;
+    var ligaSel = selLiga ? selLiga.value : gameState.league;
+
+    if (!gameState.fixture || gameState.fixture.length === 0) generarCalendario();
+    var equipos = Database.getTeams(paisSel, ligaSel);
+    if (!equipos || equipos.length === 0) {
+        container.innerHTML = '<tr><td colspan="9" style="color:#64748b;text-align:center;">No hay datos disponibles.</td></tr>';
+        return;
+    }
+
+    var hasta = gameState.matchday || 38;
+    var tabla = calcularClasificacion(equipos, gameState.fixture, hasta);
+
+    var html = '';
+    for (var i = 0; i < tabla.length; i++) {
+        var t = tabla[i];
+        var pos = i + 1;
+        var color = getColorPosicion(pos);
+        var esMiEquipo = (t.nombre === gameState.team);
+        var estilo = 'border-left: 4px solid ' + color + ';' + (esMiEquipo ? 'background:#1e293b;' : '');
+
+        html += '<tr style="' + estilo + '">' +
+            '<td class="col-pos">' + pos + '</td>' +
+            '<td class="col-equipo">' + (esMiEquipo ? '<strong>' + t.nombre + '</strong>' : t.nombre) + '</td>' +
+            '<td>' + t.pj + '</td>' +
+            '<td>' + t.g + '</td>' +
+            '<td>' + t.e + '</td>' +
+            '<td>' + t.p + '</td>' +
+            '<td>' + t.gf + '</td>' +
+            '<td>' + t.gc + '</td>' +
+            '<td class="col-pts"><strong>' + t.pts + '</strong></td>' +
+            '</tr>';
+    }
+    container.innerHTML = html;
+
+    if (leyenda) {
+        leyenda.innerHTML =
+            '<div style="font-size:11px;color:#94a3b8;padding:6px 0;border-top:1px solid #1e293b;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<span style="border-left:4px solid #AAE139;padding-left:4px;">1º Campeón+CL</span>' +
+            '<span style="border-left:4px solid #49CB2B;padding-left:4px;">2º-4º Champions</span>' +
+            '<span style="border-left:4px solid #38D996;padding-left:4px;">5º Europa L.</span>' +
+            '<span style="border-left:4px solid #5694D8;padding-left:4px;">6º Conf. L.</span>' +
+            '<span style="border-left:4px solid #BCBCBC;padding-left:4px;">7º-17º Perm.</span>' +
+            '<span style="border-left:4px solid #ED3B46;padding-left:4px;">18º-20º Descenso</span>' +
+            '</div>';
+    }
+}
+
 function renderTacticPitch() {
     var squad = gameState.squad;
     if (!squad || squad.length === 0) return;
@@ -774,6 +1061,25 @@ function runMatchSimulation() {
         if (minute >= 90) {
             clearInterval(matchInterval);
             commentary.innerHTML += '<p style="color: #facc15; font-weight: bold; margin-top: 6px;">¡FINAL DEL PARTIDO! Resultado: ' + homeGoals + ' - ' + awayGoals + '</p>';
+            var semanaIdx = (gameState.matchday || 1) - 1;
+            if (gameState.calendario && gameState.calendario[semanaIdx]) {
+                var primerPartido = gameState.calendario[semanaIdx].partidos[0];
+                if (primerPartido && !primerPartido.jugado) {
+                    primerPartido.jugado = true;
+                    primerPartido.resultado = { golesFavor: homeGoals, golesContra: awayGoals };
+                }
+            }
+            if (gameState.fixture && gameState.fixture[semanaIdx]) {
+                for (var fm = 0; fm < gameState.fixture[semanaIdx].partidos.length; fm++) {
+                    var fp = gameState.fixture[semanaIdx].partidos[fm];
+                    if (fp && (fp.local === gameState.team || fp.visitante === gameState.team)) {
+                        if (fp.local === gameState.team) { fp.golesL = homeGoals; fp.golesV = awayGoals; }
+                        else { fp.golesL = awayGoals; fp.golesV = homeGoals; }
+                        fp.jugado = true;
+                        break;
+                    }
+                }
+            }
             document.getElementById('btnContinueMatch').style.display = '';
             btnPlay.disabled = false;
             btnPlay.style.opacity = '1';
@@ -785,18 +1091,36 @@ function nextMatch() {
     gameState.matchday = (gameState.matchday || 1) + 1;
     gameState.currentDate = 'Temporada 2026-27 - Jornada ' + gameState.matchday;
 
-    var teams = Database.getTeams(gameState.country, gameState.league);
-    var others = teams.filter(function (t) { return t.name !== gameState.team; });
-    gameState.opponent = others.length > 0 ? others[Math.floor(Math.random() * others.length)].name : 'Rival';
+    var semanaIdx = gameState.matchday - 1;
+    if (gameState.calendario && gameState.calendario[semanaIdx]) {
+        var p = gameState.calendario[semanaIdx].partidos[0];
+        gameState.opponent = p ? p.rival : 'Rival';
+    } else {
+        var teams = Database.getTeams(gameState.country, gameState.league);
+        var others = teams.filter(function (t) { return t.name !== gameState.team; });
+        gameState.opponent = others.length > 0 ? others[Math.floor(Math.random() * others.length)].name : 'Rival';
+    }
 
+    document.getElementById('dashJornada').innerText = 'Jornada ' + gameState.matchday + ' - Liga';
     document.getElementById('dashHomeTeam').innerText = gameState.team;
     document.getElementById('dashAwayTeam').innerText = gameState.opponent;
     document.getElementById('dashStadiumName').innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + gameState.stadium;
-
     document.getElementById('btnContinueMatch').style.display = 'none';
+
+    var noticias = [
+        '• El ' + gameState.team + ' se prepara para la jornada ' + gameState.matchday + '.',
+        '• La afición confía en sumar los tres puntos.',
+        '• Sin lesionados de última hora en la plantilla.'
+    ];
+    if (gameState.matchday % 5 === 0) noticias.push('• Semana con partido entre semana (Copa/Champions).');
+    if (gameState.matchday === 38) noticias.push('• ¡Última jornada de la temporada!');
+    var noticiasEl = document.querySelector('#tab-inicio .dash-card:last-child div');
+    if (noticiasEl) noticiasEl.innerHTML = noticias.map(function(n){ return '<p>' + n + '</p>'; }).join('');
 
     _tacticInitDone = false;
     goToScreen('screen-game');
+    var btnInicio = document.querySelector('.nav-tab-btn');
+    if (btnInicio) switchGameTab(btnInicio, 'tab-inicio');
 }
 
 
@@ -824,6 +1148,11 @@ function obtenerEstadoJuego() {
         capacity: gameState.capacity,
         rating: gameState.rating,
         opponent: gameState.opponent,
+        matchday: gameState.matchday,
+        calendario: gameState.calendario,
+        calendarioGenerado: gameState.calendarioGenerado,
+        fixture: gameState.fixture,
+        fixtureGenerado: gameState.fixtureGenerado,
         squad: gameState.squad.map(function (p) { return JSON.parse(JSON.stringify(p)); }),
         realSaveDate: new Date().toISOString()
     };
@@ -851,12 +1180,17 @@ function cargarPartida(slotId) {
     gameState.teamId = data.teamId;
     gameState.league = data.leagueName;
     gameState.country = data.countryName;
-    gameState.currentDate = data.currentDate;
     gameState.budget = data.budget;
     gameState.stadium = data.stadium || 'Estadio';
     gameState.capacity = data.capacity || 0;
     gameState.rating = data.rating || 75;
     gameState.opponent = data.opponent || 'Rival';
+    gameState.matchday = data.matchday || 1;
+    gameState.currentDate = data.currentDate || 'Temporada 2026-27 - Jornada 1';
+    gameState.calendario = data.calendario || [];
+    gameState.calendarioGenerado = data.calendarioGenerado || false;
+    gameState.fixture = data.fixture || [];
+    gameState.fixtureGenerado = data.fixtureGenerado || false;
     gameState.squad = data.squad || [];
     gameState.slotId = slotId;
 
@@ -865,6 +1199,7 @@ function cargarPartida(slotId) {
     document.getElementById('gameManagerShort').innerText = gameState.manager;
     document.getElementById('gameBudget').innerText = gameState.budget;
 
+    document.getElementById('dashJornada').innerText = 'Jornada ' + (gameState.matchday || 1) + ' - Liga';
     document.getElementById('dashHomeTeam').innerText = gameState.team;
     document.getElementById('dashAwayTeam').innerText = gameState.opponent;
     document.getElementById('dashStadiumName').innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + gameState.stadium;
@@ -874,6 +1209,7 @@ function cargarPartida(slotId) {
     renderSquadTable();
     _tacticInitDone = false;
     renderTacticPitch();
+    generarCalendario();
     closeSlotsModal();
     goToScreen('screen-game');
 }

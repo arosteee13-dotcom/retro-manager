@@ -9,6 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FC Manager">
 </head>
 <body>
 
@@ -158,6 +162,12 @@
                     <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-dorsales')">
                         <i class="fa-solid fa-tshirt"></i> Dorsales
                     </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-calendario')">
+                        <i class="fa-solid fa-calendar"></i> Calendario
+                    </button>
+                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-competiciones')">
+                        <i class="fa-solid fa-trophy"></i> Competiciones
+                    </button>
                 </div>
 
                 <div class="game-main-area">
@@ -167,7 +177,7 @@
                             <div class="dash-card">
                                 <span class="dash-card-title"><i class="fa-solid fa-calendar-day"></i> Próximo Partido</span>
                                 <div style="text-align: center; margin: auto 0;">
-                                    <p style="font-size: 16px; color:#94a3b8;">Jornada 1 - Liga</p>
+                                    <p style="font-size: 16px; color:#94a3b8;" id="dashJornada">Jornada 1 - Liga</p>
                                     <div style="font-size: 22px; color:#6ee7b7; margin: 4px 0; line-height: 1.3;">
                                         <div id="dashHomeTeam">Real Madrid</div>
                                         <div style="font-size: 14px; color:#64748b;">VS</div>
@@ -319,6 +329,35 @@
                                 <i class="fa-solid fa-circle-info"></i> Selecciona un jugador y luego haz clic en un número para asignarlo.
                             </div>
                             <div id="tabDorsalGrid" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; overflow-y: auto; flex: 1; padding: 4px 2px;"></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-calendario" class="game-tab-content">
+                        <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
+                            <div style="font-size: 14px; color:#38bdf8; padding: 2px 0; flex-shrink: 0;">CALENDARIO DE LA TEMPORADA</div>
+                            <div id="calendarioList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 2px;"></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-competiciones" class="game-tab-content">
+                        <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
+                            <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: 2px;">
+                                <span style="font-size: 13px; color:#94a3b8;">País:</span>
+                                <select id="selClasificacionPais" class="form-input" style="font-size: 12px; padding: 2px 4px; flex: 1;" onchange="renderClasificacion()">
+                                </select>
+                                <span style="font-size: 13px; color:#94a3b8;">Liga:</span>
+                                <select id="selClasificacionLiga" class="form-input" style="font-size: 12px; padding: 2px 4px; flex: 1;" onchange="renderClasificacion()">
+                                </select>
+                            </div>
+                            <div style="flex: 1; overflow-y: auto;">
+                                <table class="tabla-clasificacion">
+                                    <thead>
+                                        <tr><th>POS</th><th>EQUIPO</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>PTS</th></tr>
+                                    </thead>
+                                    <tbody id="clasificacionBody"></tbody>
+                                </table>
+                                <div id="leyendaColores"></div>
+                            </div>
                         </div>
                     </div>
 
