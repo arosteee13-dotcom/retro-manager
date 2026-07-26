@@ -118,6 +118,8 @@ function generateSquad(teamRating) {
             val: (rating * 0.15).toFixed(1) + 'M€',
             pj: 0, gol: 0, asi: 0, ta: 0, tr: 0,
             lesionSemanas: 0,
+            sancionSemanas: 0,
+            tarjetasAmarillasAcum: 0,
             statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 }
         };
     });
@@ -372,7 +374,7 @@ function renderSquadStats() {
         tr.innerHTML =
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + '</td>' +
+            '<td>' + p.name + getEstadoIcono(p) + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + (st.partidos || 0) + '</td>' +
             '<td style="color:#10b981;">' + (st.goles || 0) + '</td>' +
@@ -393,7 +395,7 @@ function renderSquadTable() {
         tr.innerHTML =
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + '</td>' +
+            '<td>' + p.name + getEstadoIcono(p) + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -415,7 +417,11 @@ function getLinea(pos) {
 function getAlineacion(formation) {
     var lines = {
         '4-4-2 Estándar': { po: 1, defensa: 4, medio: 4, ataque: 2 },
-        '4-3-3 Ofensivo': { po: 1, defensa: 4, medio: 3, ataque: 3 },
+        '4-3-3 Defensivo': { po: 1, defensa: 4, medio: 3, ataque: 3 },
+        '4-2-3-1':        { po: 1, defensa: 4, medio: 5, ataque: 1 },
+        '3-4-3':          { po: 1, defensa: 3, medio: 4, ataque: 3 },
+        '4-4-2 Diamante': { po: 1, defensa: 4, medio: 4, ataque: 2 },
+        '4-1-4-1':        { po: 1, defensa: 4, medio: 5, ataque: 1 },
         '5-3-2 Defensivo': { po: 1, defensa: 5, medio: 3, ataque: 2 }
     };
     return lines[formation] || lines['4-4-2 Estándar'];
@@ -521,6 +527,8 @@ function generarPlantillaSimulada(nombreEquipo, pais, ratingEquipo) {
             val: (rating * 0.12).toFixed(1) + 'M€',
             pj: 0, gol: 0, asi: 0, ta: 0, tr: 0,
             lesionSemanas: 0,
+            sancionSemanas: 0,
+            tarjetasAmarillasAcum: 0,
             statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 }
         });
     }
@@ -582,7 +590,7 @@ function abrirPlantillaRival(nombreEquipo) {
         htmlInfo += '<tr class="rival-player-row" data-rid="' + p.id + '" style="cursor:pointer;">' +
             '<td><span class="dorsal-badge" style="width:22px;height:22px;font-size:9px;">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '" style="font-size:10px;width:24px;">' + p.pos + '</span></td>' +
-            '<td style="font-size:11px;">' + p.name + '</td>' +
+            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + '</td>' +
             '<td style="font-size:16px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -599,7 +607,7 @@ function abrirPlantillaRival(nombreEquipo) {
         htmlStats += '<tr class="rival-player-row" data-rid="' + p.id + '" style="cursor:pointer;">' +
             '<td><span class="dorsal-badge" style="width:22px;height:22px;font-size:9px;">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '" style="font-size:10px;width:24px;">' + p.pos + '</span></td>' +
-            '<td style="font-size:11px;">' + p.name + '</td>' +
+            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + '</td>' +
             '<td style="font-size:16px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + (st.partidos || 0) + '</td>' +
             '<td style="color:#10b981;">' + (st.goles || 0) + '</td>' +
@@ -634,6 +642,13 @@ function switchRivalSubTab(btn, tabId) {
 
 function cerrarModalRival() {
     document.getElementById('modalRival').classList.remove('active');
+}
+
+function getEstadoIcono(p) {
+    var r = '';
+    if (p && p.lesionSemanas > 0) r += '<span style="font-size:11px;margin-left:2px;" title="Lesionado ' + p.lesionSemanas + ' sem">🩹' + p.lesionSemanas + '</span>';
+    if (p && p.sancionSemanas > 0) r += '<span style="font-size:11px;margin-left:2px;" title="Sancionado ' + p.sancionSemanas + ' part">🟥' + p.sancionSemanas + '</span>';
+    return r;
 }
 
 function calcularPrecio(rating) {
@@ -725,7 +740,7 @@ function renderMercado() {
         var puedeComprar = gameState.budget >= precio;
         html += '<div class="tactic-list-item" data-midx="' + idx + '" style="cursor:pointer;">' +
             badge + ' ' +
-            '<span class="p-name" style="font-size:11px;flex:1;"> ' + j.name + '</span>' +
+            '<span class="p-name" style="font-size:11px;flex:1;"> ' + j.name + getEstadoIcono(j) + '</span>' +
             '<span style="font-size:15px;">' + flagEmoji(j.nationality) + '</span>' +
             '<span style="font-size:10px;color:#94a3b8;min-width:20px;text-align:center;">' + j.age + '</span>' +
             '<span style="font-size:10px;color:#6ee7b7;font-weight:bold;min-width:20px;text-align:center;">' + j.rating + '</span>' +
@@ -859,9 +874,10 @@ function organizarPlantilla() {
         autocompletarFormacion(selF ? selF.value : '4-4-2 Estándar');
     }
     var sorted = squad.slice().sort(function (a, b) { return a.grupo - b.grupo; });
-    var lesionados = [], sanos = [];
+    var lesionados = [], sancionados = [], sanos = [];
     sorted.forEach(function (p) {
         if (p.lesionSemanas > 0) lesionados.push(p);
+        else if (p.sancionSemanas > 0) sancionados.push(p);
         else sanos.push(p);
     });
     var xi = [], subs = [], reserves = [];
@@ -871,6 +887,7 @@ function organizarPlantilla() {
         else reserves.push(p);
     });
     lesionados.forEach(function (p) { reserves.push(p); });
+    sancionados.forEach(function (p) { reserves.push(p); });
     return { xi: xi, subs: subs, reserves: reserves };
 }
 
@@ -904,7 +921,11 @@ var _slotCompatAmpliado = {
 
 var _subsPorFormacion = {
     '4-4-2 Estándar':  { po: 2, defensa: 4, medio: 4, ataque: 2 },
-    '4-3-3 Ofensivo':  { po: 2, defensa: 4, medio: 3, ataque: 3 },
+    '4-3-3 Defensivo':  { po: 2, defensa: 4, medio: 3, ataque: 3 },
+    '4-2-3-1':         { po: 2, defensa: 4, medio: 4, ataque: 2 },
+    '3-4-3':           { po: 2, defensa: 5, medio: 4, ataque: 1 },
+    '4-4-2 Diamante':  { po: 2, defensa: 4, medio: 4, ataque: 2 },
+    '4-1-4-1':         { po: 2, defensa: 4, medio: 4, ataque: 2 },
     '5-3-2 Defensivo': { po: 2, defensa: 5, medio: 3, ataque: 2 }
 };
 
@@ -1028,6 +1049,22 @@ function simularPartidoCompleto(nombreL, nombreV, xiL, xiV, ratingL, ratingV) {
             if (goleador) { eventos[eventos.length-1].goleador = { id: goleador.id, nombre: goleador.name, dorsal: goleador.dorsal }; }
             if (asistente) { eventos[eventos.length-1].asistente = { id: asistente.id, nombre: asistente.name, dorsal: asistente.dorsal }; }
         }
+        if (Math.random() < 0.008) {
+            var eqTarjeta = Math.random() < probGanaL ? 'L' : 'V';
+            var xiTarjeta = eqTarjeta === 'L' ? xiL : xiV;
+            var jugTarjeta = jugadorAleatorio(xiTarjeta);
+            if (jugTarjeta) {
+                eventos.push({ tipo: 'ta', minuto: i, equipo: eqTarjeta, jugador: { id: jugTarjeta.id, nombre: jugTarjeta.name, dorsal: jugTarjeta.dorsal } });
+            }
+        }
+        if (Math.random() < 0.001) {
+            var eqRoja = Math.random() < probGanaL ? 'L' : 'V';
+            var xiRoja = eqRoja === 'L' ? xiL : xiV;
+            var jugRoja = jugadorAleatorio(xiRoja);
+            if (jugRoja) {
+                eventos.push({ tipo: 'tr', minuto: i, equipo: eqRoja, jugador: { id: jugRoja.id, nombre: jugRoja.name, dorsal: jugRoja.dorsal } });
+            }
+        }
     }
 
     var totalEventosGol = 0;
@@ -1110,6 +1147,39 @@ function registrarEventosPartido(eventos, fixturePartido) {
                 }
             }
         }
+        if (ev.tipo === 'ta' && ev.jugador) {
+            for (var i = 0; i < squad.length; i++) {
+                if (squad[i].id === ev.jugador.id || squad[i].name === ev.jugador.nombre) {
+                    if (!squad[i].statsTemporada) squad[i].statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 };
+                    squad[i].statsTemporada.ta++;
+                    squad[i].ta = (squad[i].ta || 0) + 1;
+                    squad[i].tarjetasAmarillasAcum = (squad[i].tarjetasAmarillasAcum || 0) + 1;
+                    if (squad[i].tarjetasAmarillasAcum >= 5) {
+                        squad[i].sancionSemanas = Math.max(squad[i].sancionSemanas || 0, 1);
+                        if (ev.equipo === 'L' ? (fixturePartido.local === gameState.team) : (fixturePartido.visitante === gameState.team)) {
+                            enviarMensaje('Comité de Competición', '🟨 Sanción por acumulación',
+                                squad[i].name + ' ha alcanzado las 5 tarjetas amarillas. Será baja para el próximo partido por sanción.');
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if (ev.tipo === 'tr' && ev.jugador) {
+            for (var i = 0; i < squad.length; i++) {
+                if (squad[i].id === ev.jugador.id || squad[i].name === ev.jugador.nombre) {
+                    if (!squad[i].statsTemporada) squad[i].statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 };
+                    squad[i].statsTemporada.tr++;
+                    squad[i].tr = (squad[i].tr || 0) + 1;
+                    squad[i].sancionSemanas = Math.max(squad[i].sancionSemanas || 0, 1);
+                    if (ev.equipo === 'L' ? (fixturePartido.local === gameState.team) : (fixturePartido.visitante === gameState.team)) {
+                        enviarMensaje('Comité de Competición', '🟥 Expulsión',
+                            squad[i].name + ' ha sido expulsado. Será baja para el próximo partido por sanción.');
+                    }
+                    break;
+                }
+            }
+        }
     }
 
 }
@@ -1130,7 +1200,8 @@ function generarFixture() {
     var mitad = n / 2;
     var ronda = nombres.slice();
 
-    for (var jornada = 0; jornada < 38; jornada++) {
+    var totalJ = gameState.totalMatchdays || 38;
+    for (var jornada = 0; jornada < totalJ; jornada++) {
         var partidosJ = [];
         for (var m = 0; m < mitad; m++) {
             var local = ronda[m];
@@ -1203,7 +1274,9 @@ function simularJornadaCPU(jornadaIdx) {
 function generarCalendario() {
     if (gameState.calendarioGenerado) return;
     gameState.calendario = [];
-    var rivales = Database.getTeams(gameState.country, gameState.league).map(function(t){ return t.name; });
+    var equiposLiga = Database.getTeams(gameState.country, gameState.league);
+    gameState.totalMatchdays = equiposLiga.length > 0 ? (equiposLiga.length - 1) * 2 : 38;
+    var rivales = equiposLiga.map(function(t){ return t.name; });
     rivales = rivales.filter(function(n){ return n !== gameState.team; });
     if (rivales.length === 0) rivales = ['Rival'];
     for (var i = rivales.length - 1; i > 0; i--) {
@@ -1213,7 +1286,8 @@ function generarCalendario() {
         rivales[j] = tmp;
     }
 
-    for (var s = 1; s <= 38; s++) {
+    var totalJornadas = gameState.totalMatchdays || 38;
+    for (var s = 1; s <= totalJornadas; s++) {
         var partidos = [];
 
         var rival = rivales[(s - 1) % rivales.length];
@@ -1275,7 +1349,15 @@ function renderCalendario() {
     container.innerHTML = html;
 }
 
-function getColorPosicion(pos) {
+function getColorPosicion(pos, totalEquipos) {
+    totalEquipos = totalEquipos || 20;
+    if (totalEquipos === 22) {
+        if (pos === 1 || pos === 2) return '#AAE139';
+        if (pos >= 3 && pos <= 6) return '#49CB2B';
+        if (pos >= 7 && pos <= 18) return '#BCBCBC';
+        if (pos >= 19) return '#ED3B46';
+        return '#BCBCBC';
+    }
     if (pos === 1) return '#AAE139';
     if (pos >= 2 && pos <= 4) return '#49CB2B';
     if (pos === 5) return '#38D996';
@@ -1323,6 +1405,30 @@ function calcularClasificacion(equipos, fixture, hastaJornada) {
 
     tabla.sort(function(a, b){
         if (b.pts !== a.pts) return b.pts - a.pts;
+
+        var h2hPtsA = 0, h2hPtsB = 0, h2hGFA = 0, h2hGFB = 0;
+        for (var j = 0; j < fixture.length && j < hastaJornada; j++) {
+            var jornada = fixture[j];
+            if (!jornada) continue;
+            for (var m = 0; m < jornada.partidos.length; m++) {
+                var p = jornada.partidos[m];
+                if (!p.jugado) continue;
+                if (p.local === a.nombre && p.visitante === b.nombre) {
+                    if (p.golesL > p.golesV) h2hPtsA += 3;
+                    else if (p.golesL === p.golesV) { h2hPtsA += 1; h2hPtsB += 1; }
+                    else h2hPtsB += 3;
+                    h2hGFA += p.golesL; h2hGFB += p.golesV;
+                } else if (p.local === b.nombre && p.visitante === a.nombre) {
+                    if (p.golesV > p.golesL) h2hPtsA += 3;
+                    else if (p.golesL === p.golesV) { h2hPtsA += 1; h2hPtsB += 1; }
+                    else h2hPtsB += 3;
+                    h2hGFA += p.golesV; h2hGFB += p.golesL;
+                }
+            }
+        }
+        if (h2hPtsA + h2hPtsB > 0 && h2hPtsA !== h2hPtsB) return h2hPtsB - h2hPtsA;
+        if (h2hPtsA + h2hPtsB > 0 && h2hGFA !== h2hGFB) return h2hGFB - h2hGFA;
+
         var dgA = a.gf - a.gc;
         var dgB = b.gf - b.gc;
         if (dgB !== dgA) return dgB - dgA;
@@ -1410,7 +1516,7 @@ function renderClasificacion() {
     for (var i = 0; i < tabla.length; i++) {
         var t = tabla[i];
         var pos = i + 1;
-        var color = getColorPosicion(pos);
+        var color = getColorPosicion(pos, equipos.length);
         var esMiEquipo = (t.nombre === gameState.team);
         var estilo = 'border-left: 4px solid ' + color + ';' + (esMiEquipo ? 'background:#1e293b;' : '');
 
@@ -1430,14 +1536,20 @@ function renderClasificacion() {
     container.innerHTML = html;
 
     if (leyenda) {
+        var es22 = equipos.length === 22;
         leyenda.innerHTML =
             '<div style="font-size:11px;color:#94a3b8;padding:6px 0;border-top:1px solid #1e293b;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;">' +
-            '<span style="border-left:4px solid #AAE139;padding-left:4px;">1º Campeón+CL</span>' +
-            '<span style="border-left:4px solid #49CB2B;padding-left:4px;">2º-4º Champions</span>' +
-            '<span style="border-left:4px solid #38D996;padding-left:4px;">5º Europa L.</span>' +
-            '<span style="border-left:4px solid #5694D8;padding-left:4px;">6º Conf. L.</span>' +
-            '<span style="border-left:4px solid #BCBCBC;padding-left:4px;">7º-17º Perm.</span>' +
-            '<span style="border-left:4px solid #ED3B46;padding-left:4px;">18º-20º Descenso</span>' +
+            (es22
+                ? '<span style="border-left:4px solid #AAE139;padding-left:4px;">1º-2º Ascenso</span>' +
+                  '<span style="border-left:4px solid #49CB2B;padding-left:4px;">3º-6º Playoffs</span>' +
+                  '<span style="border-left:4px solid #BCBCBC;padding-left:4px;">7º-18º Perm.</span>' +
+                  '<span style="border-left:4px solid #ED3B46;padding-left:4px;">19º-22º Descenso</span>'
+                : '<span style="border-left:4px solid #AAE139;padding-left:4px;">1º Campeón+CL</span>' +
+                  '<span style="border-left:4px solid #49CB2B;padding-left:4px;">2º-4º Champions</span>' +
+                  '<span style="border-left:4px solid #38D996;padding-left:4px;">5º Europa L.</span>' +
+                  '<span style="border-left:4px solid #5694D8;padding-left:4px;">6º Conf. L.</span>' +
+                  '<span style="border-left:4px solid #BCBCBC;padding-left:4px;">7º-17º Perm.</span>' +
+                  '<span style="border-left:4px solid #ED3B46;padding-left:4px;">18º-20º Descenso</span>') +
             '</div>';
     }
 }
@@ -1561,7 +1673,7 @@ function renderTacticPitch() {
         html += '<div class="tactic-list-item' + sel + '" data-pid="' + p.id + '">' +
             '<span style="font-size:11px;color:#e2e8f0;min-width:24px;">' + (p.dorsal || '-') + '</span> ' +
             badge + ' ' +
-            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + '</span>' +
+            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + getEstadoIcono(p) + '</span>' +
             '<span style="font-size:11px;color:#6ee7b7;">(' + p.rating + ')</span>' +
             '<span style="font-size:11px;color:' + stamCol + ';min-width:40px;text-align:right;">⚡ ' + stam + '</span></div>';
     });
@@ -1575,8 +1687,12 @@ function renderTacticPitch() {
 function getSlotLabels(formation) {
     var map = {
         '4-4-2 Estándar': ['POR','LI','DFC','DFC','LD','MI','MC','MC','MD','DC','DC'],
-        '4-3-3 Ofensivo': ['POR','LI','DFC','DFC','LD','MC','MCD','MC','EI','DC','ED'],
-        '5-3-2 Defensivo': ['POR','LI','DFC','DFC','DFC','LD','MC','MC','MC','DC','DC']
+        '4-3-3 Defensivo': ['POR','LI','DFC','DFC','LD','MC','MCD','MC','EI','DC','ED'],
+        '4-2-3-1':        ['POR','LI','DFC','DFC','LD','MCD','MCD','MCO','EI','DC','ED'],
+        '3-4-3':          ['POR','DFC','DFC','DFC','MI','MC','MC','MD','EI','DC','ED'],
+        '4-4-2 Diamante': ['POR','LI','DFC','DFC','LD','MCD','MC','MC','MCO','DC','DC'],
+        '4-1-4-1':        ['POR','LI','DFC','DFC','LD','MCD','MI','MC','MC','MD','DC'],
+        '5-3-2 Defensivo': ['POR','LI','DFC','DFC','DFC','LD','MC','MCD','MC','DC','DC']
     };
     return map[formation] || map['4-4-2 Estándar'];
 }
@@ -1604,7 +1720,7 @@ function renderTacticLists() {
         return '<div class="tactic-list-item' + sel + '" data-pid="' + p.id + '">' +
             '<span style="font-size:11px;color:#e2e8f0;min-width:24px;">' + (p.dorsal || '-') + '</span> ' +
             badge + ' ' +
-            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + '</span>' +
+            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + getEstadoIcono(p) + '</span>' +
             '<span style="font-size:11px;color:#6ee7b7;">(' + p.rating + ')</span>' +
             '<span style="font-size:11px;color:' + stamCol + ';min-width:40px;text-align:right;">⚡ ' + stam + '</span></div>';
     }
@@ -1627,12 +1743,9 @@ function renderTacticLists() {
 
 
 function onFormationChange() {
-    _tacticInitDone = false;
-    asignarGruposIniciales();
     seleccionID = null;
     renderTacticPitch();
     renderTacticLists();
-    showModal('FORMACIÓN', 'Formación completada con los mejores jugadores disponibles.');
 }
 
 
@@ -1840,6 +1953,13 @@ function recuperarStamina() {
             if (p.lesionSemanas === 0) {
                 enviarMensaje('Servicio Médico', 'Recuperación completa',
                     p.name + ' se ha recuperado de su lesión y está disponible para la próxima convocatoria.');
+            }
+        }
+        if (p.sancionSemanas > 0) {
+            p.sancionSemanas--;
+            if (p.sancionSemanas === 0) {
+                enviarMensaje('Comité de Competición', '✅ Sanción cumplida',
+                    p.name + ' ha cumplido su sanción y está disponible para la próxima convocatoria.');
             }
         }
         var stam = parseInt(p.stamina) || 100;
@@ -2076,7 +2196,7 @@ function previewSquad() {
         tr.innerHTML =
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + '</td>' +
+            '<td>' + p.name + getEstadoIcono(p) + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +

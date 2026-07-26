@@ -251,11 +251,15 @@
                     <div id="tab-tacticas" class="game-tab-content">
                         <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: 4px;">
                             <span style="font-size: 13px; color:#94a3b8; min-width: 70px;">Formación:</span>
-                            <select id="tacticFormation" class="form-input" style="font-size: 14px; padding: 3px; flex: 1;" onchange="onFormationChange()">
-                                <option>4-4-2 Estándar</option>
-                                <option>4-3-3 Ofensivo</option>
-                                <option>5-3-2 Defensivo</option>
-                            </select>
+                                    <select id="tacticFormation" class="form-input" style="font-size: 14px; padding: 3px; flex: 1;" onchange="onFormationChange()">
+                                        <option>4-4-2 Estándar</option>
+                                        <option>4-3-3 Defensivo</option>
+                                        <option>4-2-3-1</option>
+                                        <option>3-4-3</option>
+                                        <option>4-4-2 Diamante</option>
+                                        <option>4-1-4-1</option>
+                                        <option>5-3-2 Defensivo</option>
+                                    </select>
                             <button class="btn-retro btn-sm" onclick="onFormationChange()" style="font-size: 7px; padding: 4px 6px;"><i class="fa-solid fa-arrows-rotate"></i> Auto</button>
                             <div id="teamRatingDisplay" style="background:#111823;border:1px solid #263342;border-radius:3px;padding:4px;flex-shrink:0;min-width:180px;"></div>
                         </div>
