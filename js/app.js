@@ -21,6 +21,7 @@ const gameState = {
     mensajes: [],
     ultimoIdMensaje: 0,
     historialTraspasos: [],
+    copa: null,
     cedidosFuera: [],
     historialClub: {},
     palmaresClub: {},
@@ -487,6 +488,7 @@ function startGame() {
     renderSquadTable();
     asignarGruposIniciales();
     renderTacticPitch();
+    generarCuadroCopa();
     generarCalendario();
 
     if (gameState.calendario && gameState.calendario[0]) {
@@ -574,6 +576,9 @@ function switchGameTab(btn, tabId) {
     if (tabId === 'tab-competiciones') {
         poblarSelectoresClasificacion();
         renderClasificacion();
+    }
+    if (tabId === 'tab-copa') {
+        renderCopaView();
     }
 }
 
@@ -2549,6 +2554,167 @@ function simularJornadaCPU(jornadaIdx) {
     }
 }
 
+function generarCuadroCopa() {
+    var todasLigas = Database.getLeagues(gameState.country);
+    var todosEquipos = [];
+    todasLigas.forEach(function(liga) {
+        var teams = Database.getTeams(gameState.country, liga.name);
+        teams.forEach(function(t) {
+            todosEquipos.push({ nombre: t.name, rating: t.rating || 75, liga: liga.name });
+        });
+    });
+    todosEquipos.sort(function(a, b) { return b.rating - a.rating; });
+    var participantes = todosEquipos.slice(0, 32);
+
+    var mezclados = participantes.slice();
+    for (var i = mezclados.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = mezclados[i]; mezclados[i] = mezclados[j]; mezclados[j] = tmp;
+    }
+
+    var partidos16 = [];
+    for (var i = 0; i < mezclados.length; i += 2) {
+        partidos16.push({ local: mezclados[i].nombre, visitante: mezclados[i + 1].nombre, resultado: null });
+    }
+
+    gameState.copa = {
+        rondas: [
+            { nombre: '1/16', orden: 0, partidos: partidos16, completada: false },
+            { nombre: '1/8', orden: 1, partidos: [], completada: false },
+            { nombre: 'Cuartos', orden: 2, partidos: [], completada: false },
+            { nombre: 'Semifinal', orden: 3, partidos: [], completada: false },
+            { nombre: 'Final', orden: 4, partidos: [], completada: false }
+        ],
+        campeon: null,
+        temporada: '2026-27'
+    };
+}
+
+function simularPartidoCopa(local, visitante) {
+    var rL = _fixtureRatings[local] || 75;
+    var rV = _fixtureRatings[visitante] || 75;
+    var squadL = obtenerSquadEquipo(local);
+    var squadV = obtenerSquadEquipo(visitante);
+    var xiL = extraerXI(squadL, local);
+    var xiV = extraerXI(squadV, visitante);
+    var res = simularPartidoCompleto(local, visitante, xiL, xiV, rL, rV);
+
+    var resFinal = { golesL: res.golesL, golesV: res.golesV, tipo: 'normal' };
+
+    if (res.golesL !== res.golesV) {
+        return resFinal;
+    }
+
+    var golesETL = 0, golesETV = 0;
+    for (var i = 0; i < 30; i++) {
+        if (Math.random() < 0.012 * (rL / 100)) golesETL++;
+        if (Math.random() < 0.012 * (rV / 100)) golesETV++;
+    }
+    resFinal.golesL += golesETL;
+    resFinal.golesV += golesETV;
+    resFinal.tipo = 'prorroga';
+
+    if (golesETL !== golesETV) return resFinal;
+
+    var penL = 0, penV = 0;
+    for (var p = 0; p < 5; p++) {
+        if (Math.random() < 0.75) penL++;
+        if (Math.random() < 0.75) penV++;
+    }
+    var pIdx = 0;
+    while (penL === penV && pIdx < 10) {
+        penL += Math.random() < 0.75 ? 1 : 0;
+        penV += Math.random() < 0.75 ? 1 : 0;
+        pIdx++;
+    }
+    resFinal.tipo = 'penaltis';
+    resFinal.penaltis = { local: penL, visitante: penV };
+    if (penL > penV) resFinal.golesL++;
+    else resFinal.golesV++;
+
+    return resFinal;
+}
+
+function simularRondaCopa(orden) {
+    var ronda = gameState.copa.rondas[orden];
+    if (!ronda || ronda.completada || ronda.partidos.length === 0) return;
+    var ganadores = [];
+    ronda.partidos.forEach(function(p) {
+        if (p.resultado) {
+            var gan = p.resultado.golesL > p.resultado.golesV ? p.local : p.visitante;
+            ganadores.push(gan);
+            return;
+        }
+        var res = simularPartidoCopa(p.local, p.visitante);
+        p.resultado = res;
+        var ganador = res.golesL > res.golesV ? p.local : p.visitante;
+        ganadores.push(ganador);
+    });
+    ronda.completada = true;
+
+    if (orden < gameState.copa.rondas.length - 1) {
+        var sigRonda = gameState.copa.rondas[orden + 1];
+        for (var i = 0; i < ganadores.length; i += 2) {
+            if (i + 1 < ganadores.length) {
+                sigRonda.partidos.push({ local: ganadores[i], visitante: ganadores[i + 1], resultado: null });
+            }
+        }
+    } else {
+        gameState.copa.campeon = ganadores[0] || null;
+        if (gameState.copa.campeon) {
+            gameState.budget += 5;
+            var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+            var seasonStr = m ? m[1] : '2026-27';
+            registrarTitulo(gameState.copa.campeon, 'Copa del Rey', seasonStr);
+            enviarMensaje('Real Federación Española', '\ud83c\udfc6 Campeón de Copa',
+                '¡' + gameState.copa.campeon + ' se proclama campeón de la Copa del Rey ' + seasonStr + '!');
+        }
+    }
+}
+
+function renderCopaView() {
+    var container = document.getElementById('copaBracket');
+    if (!container) return;
+    if (!gameState.copa) generarCuadroCopa();
+
+    var campeonEl = document.getElementById('copaCampeon');
+    if (gameState.copa.campeon) {
+        campeonEl.innerHTML = '\ud83c\udfc6 Campeón: <strong>' + gameState.copa.campeon + '</strong>';
+    } else {
+        campeonEl.innerHTML = '';
+    }
+
+    var html = '';
+    gameState.copa.rondas.forEach(function(ronda) {
+        if (ronda.partidos.length === 0 && !ronda.completada) return;
+        html += '<div class="copa-round">';
+        html += '<div class="copa-round-title">' + ronda.nombre + (ronda.completada ? ' <span style="color:#22c55e;font-size:9px;">✓</span>' : '') + '</div>';
+        ronda.partidos.forEach(function(p) {
+            var esUsuario = p.local === gameState.team || p.visitante === gameState.team;
+            var clase = 'copa-match' + (esUsuario ? ' user-match' : '');
+            html += '<div class="' + clase + '">';
+            html += '<span' + (p.local === gameState.team ? ' style="color:#38bdf8;font-weight:bold;"' : '') + '>' + p.local + '</span>';
+            html += ' <span style="color:#64748b;">vs</span> ';
+            html += '<span' + (p.visitante === gameState.team ? ' style="color:#38bdf8;font-weight:bold;"' : '') + '>' + p.visitante + '</span>';
+            if (p.resultado) {
+                html += ' <span class="copa-score">' + p.resultado.golesL + '-' + p.resultado.golesV + '</span>';
+                if (p.resultado.tipo === 'penaltis') {
+                    html += ' <span class="copa-pen">(' + p.resultado.penaltis.local + '-' + p.resultado.penaltis.visitante + ' PEN)</span>';
+                } else if (p.resultado.tipo === 'prorroga') {
+                    html += ' <span class="copa-et">(T.E.)</span>';
+                }
+                var ganador = p.resultado.golesL > p.resultado.golesV ? p.local : p.visitante;
+                if (ganador === gameState.team) html += ' <span style="color:#22c55e;">&#x2714;</span>';
+            } else {
+                html += ' <span class="copa-pend">Pendiente</span>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+    });
+    container.innerHTML = html;
+}
+
 function generarCalendario() {
     if (gameState.calendarioGenerado) return;
     gameState.calendario = [];
@@ -2565,12 +2731,20 @@ function generarCalendario() {
     }
 
     var totalJornadas = gameState.totalMatchdays || 38;
+    var copaRondasCal = [4, 8, 12, 16, 20, 21, 24]; // 1/16 → 1/8 → Cuartos → SF(ida) → SF(vuelta) → Final
     for (var s = 1; s <= totalJornadas; s++) {
         var partidos = [];
 
-        if (s % 5 === 0) {
-            var copaRival = rivales[(s + 3) % rivales.length];
-            partidos.push({ competicion: (s % 10 === 0) ? 'Champions' : 'Copa', rival: copaRival, condicion: (s % 3 === 0) ? 'C' : 'V', jugado: false, resultado: null });
+        // Copa del Rey matchday
+        var copaIdx = copaRondasCal.indexOf(s);
+        if (copaIdx !== -1 && gameState.copa && gameState.copa.rondas[copaIdx]) {
+            var ronda = gameState.copa.rondas[copaIdx];
+            ronda.partidos.forEach(function(p) {
+                if (p.local === gameState.team || p.visitante === gameState.team) {
+                    var cond = p.local === gameState.team ? 'C' : 'V';
+                    partidos.push({ competicion: 'Copa', rival: p.local === gameState.team ? p.visitante : p.local, condicion: cond, jugado: false, resultado: null, copaRondaIdx: copaIdx });
+                }
+            });
         }
 
         var rival = rivales[(s - 1) % rivales.length];
@@ -2830,6 +3004,43 @@ function renderClasificacion() {
                   '<span style="border-left:4px solid #ED3B46;padding-left:4px;">18º-20º Descenso</span>') +
             '</div>';
     }
+
+    // Columna derecha: top goleadores y asistentes
+    var colStats = document.getElementById('colStats');
+    if (colStats) {
+        var pais = selPais ? selPais.value : gameState.country;
+        var liga = selLiga ? selLiga.value : gameState.league;
+        var eqs = Database.getTeams(pais, liga);
+        var goleadores = [], asistentes = [];
+        eqs.forEach(function(eq) {
+            var sq = _cachedSquads[eq.name] || eq.squad || [];
+            sq.forEach(function(j) {
+                var st = j.statsTemporada || {};
+                if ((st.goles || 0) > 0) goleadores.push({ nombre: j.name, val: st.goles, pos: j.pos });
+                if ((st.asistencias || 0) > 0) asistentes.push({ nombre: j.name, val: st.asistencias, pos: j.pos });
+            });
+        });
+        goleadores.sort(function(a, b) { return b.val - a.val; });
+        asistentes.sort(function(a, b) { return b.val - a.val; });
+
+        function renderTopJugadores(lista, label, icono) {
+            var top = lista.slice(0, 5);
+            if (top.length === 0) return '';
+            var h = '<div class="colStats-card"><div class="colStats-title">' + icono + ' ' + label + '</div>';
+            top.forEach(function(j, idx) {
+                h += '<div class="colStats-item">' +
+                    '<span style="color:#64748b;min-width:16px;">' + (idx + 1) + '.</span>' +
+                    '<span class="pos-badge" style="font-size:8px;width:20px;padding:1px 0;">' + j.pos + '</span> ' +
+                    '<span style="flex:1;">' + j.nombre + '</span>' +
+                    '<span style="color:#6ee7b7;font-weight:bold;">' + j.val + '</span></div>';
+            });
+            h += '</div>';
+            return h;
+        }
+
+        colStats.innerHTML = renderTopJugadores(goleadores, 'MÁXIMOS GOLEADORES', '⚽') +
+            renderTopJugadores(asistentes, 'MÁXIMOS ASISTENTES', '👟');
+    }
 }
 
 var _cachedSquads = {};
@@ -2858,7 +3069,6 @@ function switchCompSubTab(btn, tabId) {
     document.getElementById(tabId).style.display = 'flex';
     document.querySelectorAll('#tab-competiciones .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-    if (tabId === 'comp-estadisticas') renderEstadisticas();
 }
 
 function renderEstadisticas() {
@@ -3646,6 +3856,32 @@ function runMatchSimulation() {
                     laLigaPartido.jugado = true;
                     laLigaPartido.resultado = { golesFavor: homeGoals, golesContra: awayGoals };
                 }
+                // Registrar resultado de Copa si aplica
+                for (var ci = 0; ci < partidosSem.length; ci++) {
+                    if (partidosSem[ci].competicion === 'Copa' && !partidosSem[ci].jugado) {
+                        partidosSem[ci].jugado = true;
+                        partidosSem[ci].resultado = { golesFavor: homeGoals, golesContra: awayGoals };
+                        // Actualizar resultado en el bracket de copa
+                        var copaCal = [4, 8, 12, 16, 20, 21, 24];
+                        var cIdx = copaCal.indexOf(gameState.matchday);
+                        if (cIdx !== -1 && gameState.copa && gameState.copa.rondas[cIdx]) {
+                            var ronda = gameState.copa.rondas[cIdx];
+                            for (var pi = 0; pi < ronda.partidos.length; pi++) {
+                                var p = ronda.partidos[pi];
+                                if ((p.local === gameState.team && p.visitante === gameState.opponent) ||
+                                    (p.visitante === gameState.team && p.local === gameState.opponent)) {
+                                    var resCopa = simularPartidoCopa(gameState.team, gameState.opponent);
+                                    resCopa.golesL = homeGoals;
+                                    resCopa.golesV = awayGoals;
+                                    p.resultado = resCopa;
+                                    break;
+                                }
+                            }
+                            simularRondaCopa(cIdx);
+                        }
+                        break;
+                    }
+                }
             }
             if (gameState.fixture && gameState.fixture[semanaIdx]) {
                 for (var fm = 0; fm < gameState.fixture[semanaIdx].partidos.length; fm++) {
@@ -3820,6 +4056,25 @@ function nextMatch() {
         simularMercadoCPU();
         generarOfertasCPU();
     }
+
+    // Simular rondas de Copa donde el usuario no participa
+    if (gameState.copa) {
+        var copaCal = [4, 8, 12, 16, 20, 21, 24];
+        var copaIdx = copaCal.indexOf(gameState.matchday);
+        if (copaIdx !== -1) {
+            var ronda = gameState.copa.rondas[copaIdx];
+            if (ronda && !ronda.completada) {
+                var usuarioJuega = false;
+                ronda.partidos.forEach(function(p) {
+                    if (p.local === gameState.team || p.visitante === gameState.team) usuarioJuega = true;
+                });
+                if (!usuarioJuega) {
+                    simularRondaCopa(copaIdx);
+                }
+            }
+        }
+    }
+
     gameState.matchday = (gameState.matchday || 1) + 1;
 
     if (gameState.matchday > gameState.totalMatchdays) {
@@ -3905,6 +4160,7 @@ function obtenerEstadoJuego() {
         ultimoIdMensaje: gameState.ultimoIdMensaje,
         historialTraspasos: gameState.historialTraspasos,
         cedidosFuera: gameState.cedidosFuera,
+        copa: gameState.copa,
         historialClub: gameState.historialClub,
         palmaresClub: gameState.palmaresClub,
         estiloPresion: gameState.estiloPresion,
@@ -3962,6 +4218,7 @@ function cargarPartida(slotId) {
     gameState.ultimoIdMensaje = data.ultimoIdMensaje || 0;
     gameState.historialTraspasos = data.historialTraspasos || [];
     gameState.cedidosFuera = data.cedidosFuera || [];
+    gameState.copa = data.copa || null;
     gameState.historialClub = data.historialClub || {};
     gameState.palmaresClub = data.palmaresClub || {};
     gameState.estiloPresion = data.estiloPresion || 'pesada';
