@@ -17,6 +17,7 @@ const gameState = {
     calendario: [],
     calendarioGenerado: false,
     fixture: [],
+    fixturesPorLiga: {},
     fixtureGenerado: false,
     mensajes: [],
     ultimoIdMensaje: 0,
@@ -489,6 +490,14 @@ function startGame() {
     asignarGruposIniciales();
     renderTacticPitch();
     generarCuadroCopa();
+    var paises = Database.getCountries();
+    paises.forEach(function(p) {
+        var ligas = Database.getLeagues(p.name);
+        ligas.forEach(function(l) {
+            generarFixturePara(l.name);
+        });
+    });
+    if (!gameState.fixture || gameState.fixture.length === 0) generarFixture();
     generarCalendario();
 
     if (gameState.calendario && gameState.calendario[0]) {
@@ -2352,15 +2361,22 @@ function simularPartidoCompleto(nombreL, nombreV, xiL, xiV, ratingL, ratingV) {
 function obtenerSquadEquipo(nombre) {
     if (nombre === gameState.team) return gameState.squad;
     if (_cachedSquads[nombre]) return _cachedSquads[nombre];
-    var equipos = Database.getTeams(gameState.country, gameState.league);
-    for (var i = 0; i < equipos.length; i++) {
-        if (equipos[i].name === nombre) {
-            var rating = equipos[i].rating || 75;
-            var squad = equipos[i].squad && equipos[i].squad.length > 0
-                ? equipos[i].squad
-                : generarPlantillaSimulada(nombre, gameState.country, rating);
-            _cachedSquads[nombre] = squad;
-            return squad;
+
+    var paises = Database.getCountries();
+    for (var p = 0; p < paises.length; p++) {
+        var ligas = Database.getLeagues(paises[p].name);
+        for (var l = 0; l < ligas.length; l++) {
+            var equipos = Database.getTeams(paises[p].name, ligas[l].name);
+            for (var e = 0; e < equipos.length; e++) {
+                if (equipos[e].name === nombre) {
+                    var rating = equipos[e].rating || 75;
+                    var squad = equipos[e].squad && equipos[e].squad.length > 0
+                        ? equipos[e].squad
+                        : generarPlantillaSimulada(nombre, paises[p].name, rating);
+                    _cachedSquads[nombre] = squad;
+                    return squad;
+                }
+            }
         }
     }
     return null;
@@ -2718,6 +2734,65 @@ function renderCopaView() {
     container.innerHTML = html;
 }
 
+function generarFixturePara(ligaName) {
+    var equipos = Database.getTeams(gameState.country, ligaName);
+    if (!equipos || equipos.length < 2) return;
+    if (gameState.fixturesPorLiga[ligaName]) return;
+    var nombres = equipos.map(function(t) { return t.name; });
+    var n = nombres.length;
+    var ronda = nombres.slice();
+    var fixture = [];
+    var totalJ = (n - 1) * 2;
+    for (var j = 0; j < totalJ; j++) {
+        var partidos = [];
+        for (var m = 0; m < n / 2; m++) {
+            var local = ronda[m];
+            var visit = ronda[n - 1 - m];
+            if (j % 2 === 1) { var tmp = local; local = visit; visit = tmp; }
+            partidos.push({ local: local, visitante: visit, golesL: 0, golesV: 0, jugado: false });
+        }
+        fixture.push({ jornada: j + 1, partidos: partidos });
+        ronda.splice(1, 0, ronda.pop());
+    }
+    gameState.fixturesPorLiga[ligaName] = fixture;
+}
+
+function simularJornadaTodasLigas(jornadaIdx) {
+    for (var ligaName in gameState.fixturesPorLiga) {
+        var fixture = gameState.fixturesPorLiga[ligaName];
+        if (!fixture || !fixture[jornadaIdx]) continue;
+        var jornada = fixture[jornadaIdx];
+        for (var m = 0; m < jornada.partidos.length; m++) {
+            var p = jornada.partidos[m];
+            if (p.jugado) continue;
+            if (p.local === gameState.team || p.visitante === gameState.team) continue;
+            var rL = _fixtureRatings[p.local] || 75;
+            var rV = _fixtureRatings[p.visitante] || 75;
+            var squadL = obtenerSquadEquipo(p.local);
+            var squadV = obtenerSquadEquipo(p.visitante);
+            if (!squadL || !squadV) continue;
+            var xiL = extraerXI(squadL, p.local);
+            var xiV = extraerXI(squadV, p.visitante);
+            var res = simularPartidoCompleto(p.local, p.visitante, xiL, xiV, rL, rV);
+            p.golesL = res.golesL;
+            p.golesV = res.golesV;
+            p.jugado = true;
+            registrarEventosPartido(res.eventos, p);
+            [xiL, xiV].forEach(function(xi) {
+                xi.forEach(function(j) {
+                    if (!j.statsTemporada) j.statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 };
+                    j.statsTemporada.partidos = (j.statsTemporada.partidos || 0) + 1;
+                    j.pj = (j.pj || 0) + 1;
+                });
+            });
+            aplicarDesgasteXI(xiL);
+            aplicarDesgasteXI(xiV);
+            aplicarLesiones(xiL, p.local);
+            aplicarLesiones(xiV, p.visitante);
+        }
+    }
+}
+
 function generarCalendario() {
     if (gameState.calendarioGenerado) return;
     gameState.calendario = [];
@@ -2901,7 +2976,9 @@ function renderClasificacion() {
     var paisSel = _torneoPaisActual || gameState.country;
     var ligaSel = _torneoLigaActual || gameState.league;
 
-    if (!gameState.fixture || gameState.fixture.length === 0) generarCalendario();
+    if (!gameState.fixturesPorLiga || Object.keys(gameState.fixturesPorLiga).length === 0) {
+        if (!gameState.fixture || gameState.fixture.length === 0) generarCalendario();
+    }
     var equipos = Database.getTeams(paisSel, ligaSel);
     if (!equipos || equipos.length === 0) {
         container.innerHTML = '<tr><td colspan="9" style="color:#64748b;text-align:center;">No hay datos disponibles.</td></tr>';
@@ -2909,7 +2986,8 @@ function renderClasificacion() {
     }
 
     var hasta = gameState.matchday || 38;
-    var tabla = calcularClasificacion(equipos, gameState.fixture, hasta);
+    var fixture = gameState.fixturesPorLiga[ligaSel] || gameState.fixture;
+    var tabla = calcularClasificacion(equipos, fixture, hasta);
 
     var html = '';
     for (var i = 0; i < tabla.length; i++) {
@@ -2960,7 +3038,7 @@ function renderClasificacion() {
         var eqs = Database.getTeams(pais, liga);
         var goleadores = [], asistentes = [];
         eqs.forEach(function(eq) {
-            var sq = _cachedSquads[eq.name] || eq.squad || [];
+            var sq = obtenerSquadEquipo(eq.name) || [];
             sq.forEach(function(j) {
                 var st = j.statsTemporada || {};
                 if ((st.goles || 0) > 0) goleadores.push({ nombre: j.name, val: st.goles, pos: j.pos });
@@ -3971,9 +4049,7 @@ function nextMatch() {
         if (gameState.calendario[jornadaAnterior].partidos.length > 1) diasDescanso = 3;
     }
     recuperarEstaminaPlantilla(diasDescanso);
-    if (gameState.fixture && gameState.fixture[jornadaAnterior]) {
-        simularJornadaCPU(jornadaAnterior);
-    }
+    simularJornadaTodasLigas(jornadaAnterior);
     if (esMercadoAbierto()) {
         simularMercadoCPU();
         generarOfertasCPU();
@@ -4074,6 +4150,7 @@ function obtenerEstadoJuego() {
         calendario: gameState.calendario,
         calendarioGenerado: gameState.calendarioGenerado,
         fixture: gameState.fixture,
+        fixturesPorLiga: gameState.fixturesPorLiga,
         fixtureGenerado: gameState.fixtureGenerado,
         cachedSquads: _cachedSquads,
         fixtureRatings: _fixtureRatings,
@@ -4125,6 +4202,7 @@ function cargarPartida(slotId) {
     gameState.calendario = data.calendario || [];
     gameState.calendarioGenerado = data.calendarioGenerado || false;
     gameState.fixture = data.fixture || [];
+    gameState.fixturesPorLiga = data.fixturesPorLiga || {};
     gameState.fixtureGenerado = data.fixtureGenerado || false;
     if (data.cachedSquads) { for (var k in data.cachedSquads) { _cachedSquads[k] = data.cachedSquads[k]; } }
     if (data.fixtureRatings) { for (var k in data.fixtureRatings) { _fixtureRatings[k] = data.fixtureRatings[k]; } }
