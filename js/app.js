@@ -202,7 +202,7 @@ function renderFinanzasView() {
     }
     var html = '';
     h.forEach(function(t) {
-        var icono = t.tipo === 'venta' ? '💰' : t.tipo === 'cesion' ? '📄' : t.tipo === 'compra' ? '💵' : '🔄';
+        var icono = t.tipo === 'venta' ? '<i class="fa-solid fa-coins"></i>' : t.tipo === 'cesion' ? '<i class="fa-solid fa-file-contract"></i>' : t.tipo === 'compra' ? '<i class="fa-solid fa-cart-shopping"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
         var color = t.tipo === 'venta' || t.tipo === 'cesion' ? '#22c55e' : '#ef4444';
         var signo = (t.tipo === 'venta' || t.tipo === 'cesion') ? '+' : '-';
         html += '<div class="tactic-list-item" style="cursor:default;padding:3px 6px;">' +
@@ -500,6 +500,16 @@ function startGame() {
     if (!gameState.fixture || gameState.fixture.length === 0) generarFixture();
     generarCalendario();
 
+    if (!gameState.objetivoTemporada || gameState.objetivoTemporada === 'Evitar el descenso') {
+        var eqs = Database.getTeams(gameState.country, gameState.league);
+        for (var i = 0; i < eqs.length; i++) {
+            if (eqs[i].name === gameState.team) {
+                gameState.objetivoTemporada = eqs[i].target || 'Evitar el descenso';
+                break;
+            }
+        }
+    }
+
     if (gameState.calendario && gameState.calendario[0]) {
         var p = gameState.calendario[0].partidos[0];
         gameState.opponent = p ? p.rival : 'FC Barcelona';
@@ -619,7 +629,7 @@ function renderSquadStats() {
             '<td style="color:#38bdf8;">' + (st.asistencias || 0) + '</td>' +
             '<td style="color:#facc15;">' + (st.ta || 0) + '</td>' +
             '<td style="color:#fca5a5;">' + (st.tr || 0) + '</td>';
-        tr.onclick = function () { showPlayerDetail(p); };
+        tr.onclick = function () { showPlayerDetail(p, true); };
         tbody.appendChild(tr);
     });
     if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
@@ -653,7 +663,7 @@ function renderSquadStats() {
                     lesionSemanas: 0,
                     sancionSemanas: 0,
                     stamina: '100%'
-                });
+                }, true);
             };
         });
     }
@@ -674,7 +684,7 @@ function renderSquadTable() {
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
             '<td>' + (p.stamina || '100%') + '</td>' +
             '<td>' + p.val + '</td>';
-        tr.onclick = function () { showPlayerDetail(p); };
+        tr.onclick = function () { showPlayerDetail(p, true); };
         tbody.appendChild(tr);
     });
     if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
@@ -707,12 +717,12 @@ function renderSquadTable() {
                     lesionSemanas: 0,
                     sancionSemanas: 0,
                     stamina: '100%'
-                });
+                }, true);
             };
         });
     }
-}
 
+}
 function getLinea(pos) {
     if (pos === 'PO' || pos === 'POR') return 'po';
     if (['DFC','LI','LD','CAI','CAD'].indexOf(pos) !== -1) return 'defensa';
@@ -1207,7 +1217,7 @@ function abrirPlantillaRival(nombreEquipo) {
         el.onclick = function(){
             var pid = parseInt(this.dataset.rid);
             for (var j = 0; j < squad.length; j++) {
-                if (squad[j].id === pid) { showPlayerDetail(squad[j]); break; }
+                if (squad[j].id === pid) { showPlayerDetail(squad[j], false); break; }
             }
         };
     });
@@ -1224,7 +1234,7 @@ function abrirPlantillaRival(nombreEquipo) {
     } else {
         fichHtml = '<div style="font-size:11px;color:#94a3b8;padding:2px 4px;border-bottom:1px solid #1e293b;">MOVIMIENTOS (' + fichajesClub.length + ')</div>';
         fichajesClub.forEach(function(t) {
-            var icono = t.tipo === 'compra' ? '💰' : t.tipo === 'venta' ? '💵' : '🔄';
+            var icono = t.tipo === 'compra' ? '<i class="fa-solid fa-cart-shopping"></i>' : t.tipo === 'venta' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
             var color = t.tipo === 'compra' ? '#22c55e' : t.tipo === 'venta' ? '#eab308' : '#38bdf8';
             fichHtml += '<div class="tactic-list-item" style="cursor:default;padding:3px 6px;">' +
                 '<span style="font-size:10px;color:#64748b;min-width:36px;">' + t.fecha + '</span>' +
@@ -1592,7 +1602,7 @@ function renderHistorial() {
 
     var html = '<div style="font-size:11px;color:#38bdf8;padding:4px 2px;border-bottom:1px solid #1e293b;">HISTORIAL (' + filtrados.length + ')</div>';
     filtrados.forEach(function(t) {
-        var icono = t.tipo === 'compra' ? '💰' : t.tipo === 'venta' ? '💵' : '🔄';
+        var icono = t.tipo === 'compra' ? '<i class="fa-solid fa-cart-shopping"></i>' : t.tipo === 'venta' ? '<i class="fa-solid fa-coins"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
         var color = t.tipo === 'compra' ? '#22c55e' : t.tipo === 'venta' ? '#eab308' : '#38bdf8';
         html += '<div class="tactic-list-item" style="cursor:default;flex-wrap:wrap;padding:4px 6px;">' +
             '<div style="display:flex;align-items:center;gap:4px;width:100%;">' +
@@ -1797,45 +1807,90 @@ function renderMercado() {
     });
 
     if (filtrados.length === 0) {
-        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:10px;font-size:12px;">No se encontraron jugadores con esos filtros.</div>';
+        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:12px;">No se encontraron jugadores con esos filtros.</div>';
         return;
     }
 
     var mostrar = filtrados.slice(0, _mercadoLimite);
-    var html = '<div style="font-size:11px;color:#38bdf8;padding:4px 2px;border-bottom:1px solid #1e293b;margin-bottom:2px;">JUGADORES DISPONIBLES (' + filtrados.length + ')</div>';
+    var html = '';
     mostrar.forEach(function(item, idx) {
         var j = item.jugador;
-        var precio = calcularPrecio(j.rating);
-        var color = getColorLinea(j.pos);
-        var badge = '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:10px;width:28px;padding:1px 0;">' + j.pos + '</span>';
+        var precio = calcularPrecioOferta(j, false);
         var puedeComprar = gameState.budget >= precio;
-        html += '<div class="tactic-list-item" data-midx="' + idx + '" style="cursor:pointer;">' +
-            badge + ' ' +
-            '<span class="p-name" style="font-size:11px;flex:1;"> ' + j.name + getEstadoIcono(j) + '</span>' +
-            '<span style="font-size:15px;">' + flagEmoji(j.nationality) + '</span>' +
-            '<span style="font-size:10px;color:#94a3b8;min-width:20px;text-align:center;">' + j.age + '</span>' +
-            '<span style="font-size:10px;color:#6ee7b7;font-weight:bold;min-width:20px;text-align:center;">' + j.rating + '</span>' +
-            '<span style="font-size:10px;color:#94a3b8;min-width:50px;text-align:right;">' + j.val + '</span>' +
-            '<span style="font-size:10px;color:#eab308;min-width:44px;text-align:right;">' + precio.toFixed(1) + 'M€</span>' +
+        var color = getColorLinea(j.pos);
+        html += '<div class="market-row" data-midx="' + idx + '">' +
+            '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:8px;width:20px;padding:1px 0;text-align:center;">' + j.pos + '</span>' +
+            '<span class="market-name">' + j.name + getEstadoIcono(j) + '</span>' +
+            '<span style="font-size:14px;text-align:center;">' + flagEmoji(j.nationality) + '</span>' +
+            '<span style="text-align:center;color:#94a3b8;">' + j.age + '</span>' +
+            '<span class="market-val" style="text-align:center;">' + j.rating + '</span>' +
+            '<span class="market-val" style="text-align:right;">' + j.val + '</span>' +
+            '<span class="market-price" style="text-align:right;">' + precio.toFixed(1) + 'M\u20ac</span>' +
             (puedeComprar
-                ? '<button class="btn-retro btn-sm" onclick="event.stopPropagation();comprarJugador(' + j.id + ',\'' + item.equipo + '\',' + precio + ')" style="font-size:7px;padding:2px 4px;margin-left:2px;">💰</button>'
-                : '<span style="font-size:9px;color:#ef4444;margin-left:4px;min-width:16px;">🚫</span>') +
+                ? '<button class="btn-retro green btn-sm" onclick="event.stopPropagation();comprarJugador(' + j.id + ',\'' + item.equipo + '\',' + precio + ')" style="font-size:7px;padding:2px 4px;"><i class="fa-solid fa-coins"></i> Fichar</button>'
+                : '<span style="color:#ef4444;font-size:8px;text-align:center;" title="Presupuesto insuficiente"><i class="fa-solid fa-ban"></i> Sin fondo</span>') +
             '</div>';
     });
     if (filtrados.length > _mercadoLimite) {
-        html += '<div class="tactic-list-item" style="cursor:pointer;justify-content:center;padding:6px;" onclick="javascript:_mercadoLimite+=20;renderMercado();">' +
-            '<span style="font-size:11px;color:#38bdf8;">📄 Ver más (' + (filtrados.length - _mercadoLimite) + ' restantes)</span></div>';
+        html += '<div class="market-row" style="cursor:pointer;justify-content:center;padding:6px;" onclick="_mercadoLimite+=20;renderMercado();grid-template-columns:1fr;">' +
+            '<span style="font-size:11px;color:#38bdf8;grid-column:1/-1;text-align:center;">\ud83d\udcc4 Ver m\u00e1s (' + (filtrados.length - _mercadoLimite) + ' restantes)</span></div>';
     }
     lista.innerHTML = html;
 
-    lista.querySelectorAll('.tactic-list-item[data-midx]').forEach(function(el) {
+    lista.querySelectorAll('.market-row[data-midx]').forEach(function(el) {
         el.onclick = function() {
             var idx = parseInt(this.dataset.midx);
             if (idx >= 0 && idx < mostrar.length) {
-                showPlayerDetail(mostrar[idx].jugador);
+                showPlayerDetail(mostrar[idx].jugador, false);
             }
         };
     });
+}
+
+function renderMercadoTransferibles() {
+    var lista = document.getElementById('mercadoTransferiblesLista');
+    if (!lista) return;
+    var jugadores = (gameState.squad || []).filter(function(p) { return p.enTransferibles; });
+    if (jugadores.length === 0) {
+        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:12px;">No hay jugadores en la lista de transferibles. Márcalos desde su ficha.</div>';
+        return;
+    }
+    var html = '';
+    jugadores.forEach(function(j) {
+        var precio = calcularPrecioOferta(j, true);
+        var color = getColorLinea(j.pos);
+        html += '<div class="market-row" style="cursor:default;">' +
+            '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:8px;width:20px;padding:1px 0;text-align:center;">' + j.pos + '</span>' +
+            '<span class="market-name">' + j.name + '</span>' +
+            '<span style="text-align:center;color:#94a3b8;">' + j.age + '</span>' +
+            '<span class="market-val" style="text-align:center;">' + j.rating + '</span>' +
+            '<span class="market-val" style="text-align:right;">' + j.val + '</span>' +
+            '<span class="market-price" style="text-align:right;">' + precio.toFixed(1) + 'M\u20ac</span>' +
+            '<span style="color:#22c55e;font-size:9px;text-align:center;font-weight:bold;">\u2713 En venta</span></div>';
+    });
+    lista.innerHTML = html;
+}
+
+function renderMercadoCedibles() {
+    var lista = document.getElementById('mercadoCediblesLista');
+    if (!lista) return;
+    var jugadores = (gameState.squad || []).filter(function(p) { return p.enCedibles; });
+    if (jugadores.length === 0) {
+        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:12px;">No hay jugadores en la lista de cedibles. Márcalos desde su ficha.</div>';
+        return;
+    }
+    var html = '';
+    jugadores.forEach(function(j) {
+        var color = getColorLinea(j.pos);
+        html += '<div class="market-row" style="cursor:default;">' +
+            '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:8px;width:20px;padding:1px 0;text-align:center;">' + j.pos + '</span>' +
+            '<span class="market-name">' + j.name + '</span>' +
+            '<span style="text-align:center;color:#94a3b8;">' + j.age + '</span>' +
+            '<span class="market-val" style="text-align:center;">' + j.rating + '</span>' +
+            '<span class="market-val" style="text-align:right;">' + j.val + '</span>' +
+            '<span style="color:#38bdf8;font-size:9px;text-align:center;font-weight:bold;">\ud83d\udd04 Cedible</span></div>';
+    });
+    lista.innerHTML = html;
 }
 
 function comprarJugador(jugadorId, equipoOrigen, precio) {
@@ -2184,6 +2239,44 @@ function calcularPrecioOferta(jugador, enTransferibles) {
     return Math.round(precio * 100) / 100;
 }
 
+function buscarClubesInteresadosEnCedible(jugador) {
+    var grupoJug = getGrupoPos(jugador.pos);
+    var todosEq = obtenerTodosEquipos();
+    var interesados = [];
+    todosEq.forEach(function(eq) {
+        if (eq.name === gameState.team) return;
+        var sq = _cachedSquads[eq.name];
+        if (!sq || sq.length === 0) return;
+        if (Math.abs(jugador.rating - (eq.rating || 75)) > 8) return;
+        var tieneGrupo = false;
+        for (var i = 0; i < sq.length; i++) {
+            if (getGrupoPos(sq[i].pos) === grupoJug) { tieneGrupo = true; break; }
+        }
+        if (!tieneGrupo) return;
+        if (jugador.rating <= (eq.rating || 75) + 15) interesados.push(eq.name);
+    });
+    return interesados;
+}
+
+function buscarYOfertarCesion(jugador) {
+    if (!jugador) return;
+    var interesados = buscarClubesInteresadosEnCedible(jugador);
+    if (interesados.length === 0) return;
+    var elegido = interesados[Math.floor(Math.random() * interesados.length)];
+    var duraciones = [0.5, 1, 2];
+    var duracion = duraciones[Math.floor(Math.random() * duraciones.length)];
+    var textoDuracion = duracion === 0.5 ? '1/2 temporada' : duracion + ' temporadas';
+    enviarMensaje(elegido, '\uD83D\uDCC4 Oferta de Cesi\u00f3n por ' + jugador.name,
+        'El ' + elegido + ' est\u00e1 interesado en incorporar a ' + jugador.name +
+        ' en calidad de cedido por una duraci\u00f3n de ' + textoDuracion + '.',
+        [
+            { texto: 'Aceptar Cesión', fn: 'aceptarCesion(' + jugador.id + ',\'' + elegido + '\',' + duracion + ')' },
+            { texto: 'Rechazar', fn: 'rechazarOferta(' + jugador.id + ')' }
+        ]
+    );
+    renderInbox();
+}
+
 function generarOfertasCPU() {
     if (!gameState.squad || gameState.squad.length === 0) return;
     if (!esMercadoAbierto()) { console.log('[MERCADO] Cerrado (J' + gameState.matchday + ')'); return; }
@@ -2199,6 +2292,7 @@ function generarOfertasCPU() {
 
     var intentos = 3 + Math.floor(Math.random() * 3);
     var ofertasEnviadas = 0;
+    var ofertasPorEquipo = {};
 
     for (var t = 0; t < intentos; t++) {
         var disponibles = gameState.squad.filter(function(p) {
@@ -2225,12 +2319,15 @@ function generarOfertasCPU() {
             var presupuesto = _presupuestosCPU[eq.name] || parsearPresupuesto(eq.budget || '2.0M€');
             if (presupuesto >= valor * 0.6) posiblesCompra.push(eq.name);
 
-            if (esReserva || esJoven) {
+            if (elegido.enCedibles || esReserva || esJoven) {
                 var sq = obtenerSquadEquipo(eq.name);
                 if (sq && sq.length > 0) {
-                    var needs = getPosicionesNecesitadas(sq, eq.rating);
-                    if (needs.indexOf(grupoJug) !== -1 && Math.abs(elegido.rating - (eq.rating || 75)) <= 5) {
-                        if (presupuesto >= valor * 0.1) posiblesCesion.push(eq.name);
+                    var tieneGrupo = false;
+                    for (var si = 0; si < sq.length; si++) {
+                        if (getGrupoPos(sq[si].pos) === grupoJug) { tieneGrupo = true; break; }
+                    }
+                    if (tieneGrupo && Math.abs(elegido.rating - (eq.rating || 75)) <= 8) {
+                        posiblesCesion.push(eq.name);
                     }
                 }
             }
@@ -2255,7 +2352,20 @@ function generarOfertasCPU() {
 
         if (esCesion) {
             if (posiblesCesion.length === 0) { console.log('[MERCADO] Sin cesión viable para', elegido.name); continue; }
-            var ofertante = posiblesCesion[Math.floor(Math.random() * posiblesCesion.length)];
+            var pesoTotalC = 0, pesosC = [];
+            posiblesCesion.forEach(function(n) {
+                var w = 1 / (1 + (ofertasPorEquipo[n] || 0));
+                pesosC.push({ nombre: n, peso: w });
+                pesoTotalC += w;
+            });
+            var rc = Math.random() * pesoTotalC;
+            var ofertante = posiblesCesion[0];
+            for (var pc2 = 0; pc2 < pesosC.length; pc2++) {
+                rc -= pesosC[pc2].peso;
+                if (rc <= 0) { ofertante = pesosC[pc2].nombre; break; }
+            }
+            if (!ofertasPorEquipo[ofertante]) ofertasPorEquipo[ofertante] = 0;
+            ofertasPorEquipo[ofertante]++;
             var duraciones = [0.5, 1, 2];
             var duracion = duraciones[Math.floor(Math.random() * duraciones.length)];
             var textoDuracion = duracion === 0.5 ? '1/2 temporada' : duracion + ' temporadas';
@@ -2271,7 +2381,20 @@ function generarOfertasCPU() {
             console.log('[MERCADO] Cesión ofrecida:', elegido.name, '→', ofertante);
         } else {
             if (posiblesCompra.length === 0) { console.log('[MERCADO] Sin comprador con presupuesto para', elegido.name); continue; }
-            var ofertante = posiblesCompra[Math.floor(Math.random() * posiblesCompra.length)];
+            var pesoTotal = 0, pesos = [];
+            posiblesCompra.forEach(function(n) {
+                var w = 1 / (1 + (ofertasPorEquipo[n] || 0));
+                pesos.push({ nombre: n, peso: w });
+                pesoTotal += w;
+            });
+            var r = Math.random() * pesoTotal;
+            var ofertante = posiblesCompra[0];
+            for (var pc = 0; pc < pesos.length; pc++) {
+                r -= pesos[pc].peso;
+                if (r <= 0) { ofertante = pesos[pc].nombre; break; }
+            }
+            if (!ofertasPorEquipo[ofertante]) ofertasPorEquipo[ofertante] = 0;
+            ofertasPorEquipo[ofertante]++;
             var precio = calcularPrecioOferta(elegido, elegido.enTransferibles);
             var presupComp = _presupuestosCPU[ofertante] || 0;
             if (precio > presupComp) precio = presupComp;
@@ -2287,17 +2410,46 @@ function generarOfertasCPU() {
         }
     }
 
+    var cediblesSinOferta = gameState.squad.filter(function(p) {
+        return p.enCedibles && p.lesionSemanas === 0 && p.sancionSemanas === 0;
+    });
+    cediblesSinOferta.forEach(function(ced) {
+        if (!_intentosCesion[ced.id]) _intentosCesion[ced.id] = 0;
+        _intentosCesion[ced.id]++;
+        var prob = Math.min(0.4 + _intentosCesion[ced.id] * 0.2, 0.9);
+        if (Math.random() < prob) {
+            var interesados = buscarClubesInteresadosEnCedible(ced);
+            if (interesados.length > 0) {
+                var elegidoC = interesados[Math.floor(Math.random() * interesados.length)];
+                if (!ofertasPorEquipo[elegidoC]) ofertasPorEquipo[elegidoC] = 0;
+                ofertasPorEquipo[elegidoC]++;
+                var duraciones = [0.5, 1, 2];
+                var duracion = duraciones[Math.floor(Math.random() * duraciones.length)];
+                var textoDuracion = duracion === 0.5 ? '1/2 temporada' : duracion + ' temporadas';
+                enviarMensaje(elegidoC, '\uD83D\uDCC4 Oferta de Cesi\u00f3n por ' + ced.name,
+                    'El ' + elegidoC + ' est\u00e1 interesado en incorporar a ' + ced.name +
+                    ' en calidad de cedido por una duraci\u00f3n de ' + textoDuracion + '.',
+                    [
+                        { texto: 'Aceptar Cesión', fn: 'aceptarCesion(' + ced.id + ',\'' + elegidoC + '\',' + duracion + ')' },
+                        { texto: 'Rechazar', fn: 'rechazarOferta(' + ced.id + ')' }
+                    ]
+                );
+                ofertasEnviadas++;
+                _intentosCesion[ced.id] = 0;
+                console.log('[MERCADO] Cesión dedicada ofrecida:', ced.name, '→', elegidoC);
+            }
+        }
+    });
+
     if (ofertasEnviadas === 0) {
         var planB = null;
         for (var i = 0; i < gameState.squad.length; i++) {
             if (gameState.squad[i].lesionSemanas === 0) { planB = gameState.squad[i]; break; }
         }
         if (planB) {
-            var compradorB = null;
-            for (var i = 0; i < todosEquipos.length; i++) {
-                if (todosEquipos[i].name !== gameState.team) { compradorB = todosEquipos[i].name; break; }
-            }
-            if (compradorB) {
+            var cpuTeams = todosEquipos.filter(function(eq) { return eq.name !== gameState.team; });
+            if (cpuTeams.length > 0) {
+                var compradorB = cpuTeams[Math.floor(Math.random() * cpuTeams.length)].name;
                 var precioB = calcularPrecioOferta(planB, false);
                 enviarMensaje(compradorB, '\ud83d\udce8 Oferta por ' + planB.name,
                     'El ' + compradorB + ' ofrece ' + precioB.toFixed(1) + 'M\u20ac por ' + planB.name + '.',
@@ -3217,8 +3369,8 @@ function renderClasificacion() {
             var sq = obtenerSquadEquipo(eq.name) || [];
             sq.forEach(function(j) {
                 var st = j.statsTemporada || {};
-                if ((st.goles || 0) > 0) goleadores.push({ nombre: j.name, val: st.goles, pos: j.pos });
-                if ((st.asistencias || 0) > 0) asistentes.push({ nombre: j.name, val: st.asistencias, pos: j.pos });
+                if ((st.goles || 0) > 0) goleadores.push({ nombre: j.name, val: st.goles, pos: j.pos, equipo: eq.name });
+                if ((st.asistencias || 0) > 0) asistentes.push({ nombre: j.name, val: st.asistencias, pos: j.pos, equipo: eq.name });
             });
         });
         goleadores.sort(function(a, b) { return b.val - a.val; });
@@ -3232,7 +3384,7 @@ function renderClasificacion() {
                 h += '<div class="colStats-item">' +
                     '<span style="color:#64748b;min-width:16px;">' + (idx + 1) + '.</span>' +
                     '<span class="pos-badge" style="font-size:8px;width:20px;padding:1px 0;">' + j.pos + '</span> ' +
-                    '<span style="flex:1;">' + j.nombre + '</span>' +
+                    '<span style="flex:1;">' + j.nombre + ' <span style="color:#94a3b8;font-size:9px;">(' + j.equipo + ')</span></span>' +
                     '<span style="color:#6ee7b7;font-weight:bold;">' + j.val + '</span></div>';
             });
             h += '</div>';
@@ -3253,6 +3405,8 @@ function switchMercadoSubTab(btn, tabId) {
     document.querySelectorAll('#tab-mercado .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
     if (tabId === 'mercado-buscar') renderMercado();
+    if (tabId === 'mercado-transferibles') renderMercadoTransferibles();
+    if (tabId === 'mercado-cedibles') renderMercadoCedibles();
     if (tabId === 'mercado-historial') renderHistorial();
 }
 
@@ -4435,7 +4589,16 @@ function cargarPartida(slotId) {
     gameState.palmaresClub = data.palmaresClub || {};
     gameState.estiloPresion = data.estiloPresion || 'pesada';
     gameState.formacion = data.formacion || '4-4-2 Estándar';
-    gameState.objetivoTemporada = data.objetivoTemporada || (gameState.team ? 'Evitar el descenso' : 'Evitar el descenso');
+    if (data.objetivoTemporada) {
+        gameState.objetivoTemporada = data.objetivoTemporada;
+    } else {
+        var equipos = Database.getTeams(gameState.country, gameState.league);
+        var eqData = null;
+        for (var i = 0; i < equipos.length; i++) {
+            if (equipos[i].name === gameState.team) { eqData = equipos[i]; break; }
+        }
+        gameState.objetivoTemporada = (eqData && eqData.target) || 'Evitar el descenso';
+    }
     gameState.capitanId = data.capitanId || null;
     gameState.squad = data.squad || [];
     gameState.slotId = slotId;
@@ -4661,6 +4824,7 @@ function switchPlayerSubTab(btn, tabId) {
 }
 
 var _playerModalId = null;
+var _intentosCesion = {};
 
 function buscarEnSquad(id) {
     for (var i = 0; i < gameState.squad.length; i++) {
@@ -4699,12 +4863,16 @@ function toggleCedible() {
     var p = buscarEnSquad(_playerModalId);
     if (!p) return;
     p.enCedibles = !p.enCedibles;
+    if (!p.enCedibles && _intentosCesion[p.id]) delete _intentosCesion[p.id];
     actualizarBotonesMercado(p);
     renderSquadTable();
     renderSquadStats();
+    if (p.enCedibles && esMercadoAbierto()) {
+        buscarYOfertarCesion(p);
+    }
 }
 
-function showPlayerDetail(p) {
+function showPlayerDetail(p, esPropio) {
     _playerModalId = p.id;
     document.getElementById('playerModalDorsal').innerText = '#' + (p.dorsal || p.id || '-');
     document.getElementById('playerModalPos').className = 'pos-badge pos-' + p.pos;
@@ -4728,7 +4896,11 @@ function showPlayerDetail(p) {
     document.querySelectorAll('#playerModal .btn-retro.btn-sm').forEach(function (b) { b.classList.remove('active'); });
     var btns = document.querySelectorAll('#playerModal .btn-retro.btn-sm');
     if (btns.length > 0) btns[0].classList.add('active');
-    actualizarBotonesMercado(p);
+
+    document.getElementById('playerModalMyBtns').style.display = esPropio ? 'flex' : 'none';
+    document.getElementById('playerModalRivalBtns').style.display = esPropio ? 'none' : 'flex';
+
+    if (esPropio) actualizarBotonesMercado(p);
     document.getElementById('playerModal').style.zIndex = '300';
     document.getElementById('playerModal').classList.add('active');
 }
@@ -4736,6 +4908,103 @@ function showPlayerDetail(p) {
 function closePlayerModal() {
     document.getElementById('playerModal').style.zIndex = '';
     document.getElementById('playerModal').classList.remove('active');
+}
+
+function buscarJugadorEnLiga(id) {
+    var equipos = obtenerTodosEquipos();
+    for (var e = 0; e < equipos.length; e++) {
+        if (equipos[e].name === gameState.team) continue;
+        var sq = _cachedSquads[equipos[e].name] || equipos[e].squad || [];
+        for (var j = 0; j < sq.length; j++) {
+            if (sq[j].id === id) return { jugador: sq[j], equipo: equipos[e].name };
+        }
+    }
+    return null;
+}
+
+function ofertarTraspasoModal() {
+    closePlayerModal();
+    var encontrado = buscarJugadorEnLiga(_playerModalId);
+    if (!encontrado) { showModal('ERROR', 'Jugador no encontrado.'); return; }
+    var jugador = encontrado.jugador;
+    var precioBase = calcularPrecioOferta(jugador, jugador.enTransferibles);
+    document.getElementById('ofertaJugadorNombre').innerText = jugador.name + ' (' + jugador.pos + ', ' + jugador.rating + ')';
+    document.getElementById('ofertaJugadorVal').innerText = jugador.val;
+    document.getElementById('ofertaPresupuesto').innerText = formatearPresupuesto(gameState.budget);
+    var input = document.getElementById('inputOfertaTraspaso');
+    input.value = precioBase.toFixed(1);
+    input.min = '0.5';
+    input.step = '0.1';
+    input.dataset.jugadorId = jugador.id;
+    input.dataset.equipoOrigen = encontrado.equipo;
+    document.getElementById('modalOfertaTraspaso').classList.add('active');
+    document.getElementById('modalOfertaTraspaso').style.zIndex = '400';
+    setTimeout(function () { input.focus(); input.select(); }, 100);
+}
+
+function confirmarOfertaTraspaso() {
+    var input = document.getElementById('inputOfertaTraspaso');
+    var precioOferta = parseFloat(input.value.replace(',', '.'));
+    if (isNaN(precioOferta) || precioOferta <= 0) { showModal('ERROR', 'Introduce un importe válido.'); return; }
+    if (precioOferta > gameState.budget) {
+        showModal('PRESUPUESTO', 'No tienes suficiente presupuesto. Dispones de ' + formatearPresupuesto(gameState.budget) + '.');
+        return;
+    }
+    var jugadorId = parseInt(input.dataset.jugadorId);
+    var equipoOrigen = input.dataset.equipoOrigen;
+    document.getElementById('modalOfertaTraspaso').classList.remove('active');
+    ficharJugador(jugadorId, equipoOrigen, precioOferta);
+}
+
+function ofertarCesionModal() {
+    closePlayerModal();
+    var encontrado = buscarJugadorEnLiga(_playerModalId);
+    if (!encontrado) { showModal('ERROR', 'Jugador no encontrado.'); return; }
+    var jugador = encontrado.jugador;
+    document.getElementById('cesionJugadorNombre').innerText = jugador.name + ' (' + jugador.pos + ', ' + jugador.rating + ')';
+    document.getElementById('cesionEquipoOrigen').innerText = encontrado.equipo;
+    document.getElementById('modalOfertaCesion').dataset.jugadorId = jugador.id;
+    document.getElementById('modalOfertaCesion').dataset.equipoOrigen = encontrado.equipo;
+    document.getElementById('modalOfertaCesion').dataset.jugadorNombre = jugador.name;
+    document.getElementById('modalOfertaCesion').dataset.jugadorPos = jugador.pos;
+    document.getElementById('modalOfertaCesion').dataset.jugadorRating = jugador.rating;
+    document.getElementById('modalOfertaCesion').classList.add('active');
+    document.getElementById('modalOfertaCesion').style.zIndex = '400';
+}
+
+function seleccionarDuracionCesion(btn) {
+    var padres = btn.parentNode;
+    padres.querySelectorAll('.cesion-duracion').forEach(function (b) {
+        b.classList.remove('active');
+        b.style.background = '';
+        b.style.borderColor = '';
+        b.style.color = '';
+    });
+    btn.classList.add('active');
+    btn.style.background = '#1e3a5f';
+    btn.style.borderColor = '#38bdf8';
+    btn.style.color = '#38bdf8';
+}
+
+function confirmarOfertaCesion() {
+    var modal = document.getElementById('modalOfertaCesion');
+    var durBtn = modal.querySelector('.cesion-duracion.active');
+    if (!durBtn) { showModal('ERROR', 'Selecciona una duración.'); return; }
+    var dur = parseFloat(durBtn.dataset.duracion);
+    var jugadorId = parseInt(modal.dataset.jugadorId);
+    var equipoOrigen = modal.dataset.equipoOrigen;
+    var jugadorNombre = modal.dataset.jugadorNombre;
+    var jugadorPos = modal.dataset.jugadorPos;
+    var jugadorRating = modal.dataset.jugadorRating;
+    modal.classList.remove('active');
+    enviarMensaje('Dirección Deportiva', '\uD83d\uDcc4 Solicitud de cesi\u00f3n',
+        'El ' + gameState.team + ' solicita la cesi\u00f3n de ' + jugadorNombre + ' (' + jugadorPos + ', ' + jugadorRating + ') del ' + equipoOrigen + ' por ' + dur + ' temporada(s).');
+    renderInbox();
+    showModal('CESI\u00d3N', 'Solicitud de cesi\u00f3n enviada al ' + equipoOrigen + '. Revisa tu bandeja de entrada para conocer la respuesta.');
+}
+
+function cerrarModalOferta(id) {
+    document.getElementById(id).classList.remove('active');
 }
 
 populateCountries();
