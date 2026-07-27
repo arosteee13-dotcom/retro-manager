@@ -622,6 +622,41 @@ function renderSquadStats() {
         tr.onclick = function () { showPlayerDetail(p); };
         tbody.appendChild(tr);
     });
+    if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
+        var hr = tbody.insertRow();
+        hr.innerHTML = '<td colspan="9" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
+        gameState.cedidosFuera.forEach(function(cr) {
+            var r = tbody.insertRow();
+            r.style.color = '#64748b';
+            r.innerHTML =
+                '<td><span class="dorsal-badge" style="background:#334155;">' + (cr.dorsal || '-') + '</span></td>' +
+                '<td><span class="pos-badge pos-' + cr.pos + '">' + cr.pos + '</span></td>' +
+                '<td>' + cr.nombre + ' <span style="color:#eab308;font-size:10px;">→ ' + cr.destino + '</span></td>' +
+                '<td style="font-size:20px;">' + flagEmoji(cr.nacionalidad || 'es') + '</td>' +
+                '<td>' + (cr.partidos || 0) + '</td>' +
+                '<td style="color:#10b981;">' + (cr.statsTemporada ? (cr.statsTemporada.goles || 0) : 0) + '</td>' +
+                '<td style="color:#38bdf8;">' + (cr.statsTemporada ? (cr.statsTemporada.asistencias || 0) : 0) + '</td>' +
+                '<td style="color:#facc15;">0</td>' +
+                '<td style="color:#fca5a5;">0</td>';
+            r.onclick = function() {
+                showPlayerDetail({
+                    id: cr.id,
+                    name: cr.nombre,
+                    pos: cr.pos,
+                    rating: cr.rating,
+                    age: cr.edad,
+                    nationality: cr.nacionalidad || 'es',
+                    height: cr.altura || 180,
+                    val: cr.val || '0M€',
+                    dorsal: cr.dorsal,
+                    statsTemporada: cr.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 },
+                    lesionSemanas: 0,
+                    sancionSemanas: 0,
+                    stamina: '100%'
+                });
+            };
+        });
+    }
 }
 
 function renderSquadTable() {
@@ -633,7 +668,7 @@ function renderSquadTable() {
         tr.innerHTML =
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + getEstadoIcono(p) + '</td>' +
+            '<td>' + p.name + getEstadoIcono(p) + (p.enTransferibles ? ' <span style="font-size:8px;background:#92400e;color:#fbbf24;padding:1px 4px;border-radius:3px;font-weight:bold;">TRA</span>' : '') + (p.enCedibles ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -642,6 +677,40 @@ function renderSquadTable() {
         tr.onclick = function () { showPlayerDetail(p); };
         tbody.appendChild(tr);
     });
+    if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
+        var hr = tbody.insertRow();
+        hr.innerHTML = '<td colspan="8" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
+        gameState.cedidosFuera.forEach(function(cr) {
+            var r = tbody.insertRow();
+            r.style.color = '#64748b';
+            r.innerHTML =
+                '<td><span class="dorsal-badge" style="background:#334155;">' + (cr.dorsal || '-') + '</span></td>' +
+                '<td><span class="pos-badge pos-' + cr.pos + '">' + cr.pos + '</span></td>' +
+                '<td>' + cr.nombre + ' <span style="color:#eab308;font-size:10px;">→ ' + cr.destino + '</span></td>' +
+                '<td style="font-size:20px;">' + flagEmoji(cr.nacionalidad || 'es') + '</td>' +
+                '<td>' + (cr.edad || '-') + '</td>' +
+                '<td style="color:#6ee7b7;font-weight:bold;">' + (cr.rating || '-') + '</td>' +
+                '<td style="color:#64748b;">CEDIDO</td>' +
+                '<td style="color:#64748b;">—</td>';
+            r.onclick = function() {
+                showPlayerDetail({
+                    id: cr.id,
+                    name: cr.nombre,
+                    pos: cr.pos,
+                    rating: cr.rating,
+                    age: cr.edad,
+                    nationality: cr.nacionalidad || 'es',
+                    height: cr.altura || 180,
+                    val: cr.val || '0M€',
+                    dorsal: cr.dorsal,
+                    statsTemporada: cr.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 },
+                    lesionSemanas: 0,
+                    sancionSemanas: 0,
+                    stamina: '100%'
+                });
+            };
+        });
+    }
 }
 
 function getLinea(pos) {
@@ -1104,7 +1173,7 @@ function abrirPlantillaRival(nombreEquipo) {
         htmlInfo += '<tr class="rival-player-row" data-rid="' + p.id + '" style="cursor:pointer;">' +
             '<td><span class="dorsal-badge" style="width:22px;height:22px;font-size:9px;">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '" style="font-size:10px;width:24px;">' + p.pos + '</span></td>' +
-            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + '</td>' +
+            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + (p.esCedido ? ' <span style="font-size:8px;background:#eab308;color:#000;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + '</td>' +
             '<td style="font-size:16px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -1121,7 +1190,7 @@ function abrirPlantillaRival(nombreEquipo) {
         htmlStats += '<tr class="rival-player-row" data-rid="' + p.id + '" style="cursor:pointer;">' +
             '<td><span class="dorsal-badge" style="width:22px;height:22px;font-size:9px;">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '" style="font-size:10px;width:24px;">' + p.pos + '</span></td>' +
-            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + '</td>' +
+            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + (p.esCedido ? ' <span style="font-size:8px;background:#eab308;color:#000;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + '</td>' +
             '<td style="font-size:16px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + (st.partidos || 0) + '</td>' +
             '<td style="color:#10b981;">' + (st.goles || 0) + '</td>' +
@@ -1432,7 +1501,9 @@ function renderMatchNotas(xi, eventos, gc, partidoFinalizado) {
     }
 
     var html = '';
-    xi.forEach(function(p) {
+    var formPartido = (matchState && matchState.formacionUsada) || getFormacionActiva();
+    var slotLabels = getSlotLabels(formPartido);
+    xi.forEach(function(p, idx) {
         var cnt = contarEventosJugador(p.id);
         var forma = (matchState && matchState.formaInicial) ? (matchState.formaInicial[p.id] || 0) : 0;
         var nota = 6.5 + forma;
@@ -1463,8 +1534,10 @@ function renderMatchNotas(xi, eventos, gc, partidoFinalizado) {
             nombreMostrar = inicial + '. ' + nombreMostrar.substring(ultEsp + 1);
         }
 
+        var posDisplay = (slotLabels && slotLabels[idx]) ? slotLabels[idx] : p.pos;
+
         html += '<div class="match-nota-row">' +
-            '<span class="pos-badge" style="background:' + getColorLinea(p.pos) + ';color:#fff;font-size:9px;width:24px;padding:1px 0;">' + p.pos + '</span>' +
+            '<span class="pos-badge" style="background:' + getColorLinea(posDisplay) + ';color:#fff;font-size:9px;width:24px;padding:1px 0;">' + posDisplay + '</span>' +
             '<span class="mn-nombre" title="' + p.name + '">' + nombreMostrar + '</span>' +
             (badges ? '<span class="mn-badges">' + badges + '</span>' : '<span class="mn-badges"></span>') +
             '<span class="mn-nota" style="color:' + color + ';">' + nota.toFixed(1) + '</span>' +
@@ -1789,6 +1862,7 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
     if (!nuevoJugador.statsTemporada) nuevoJugador.statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 };
     gameState.squad.push(nuevoJugador);
     squadOrigen.splice(idx, 1);
+    _presupuestosCPU[equipoOrigen] = (_presupuestosCPU[equipoOrigen] || 0) + precio;
 
     if (!gameState.historialTraspasos) gameState.historialTraspasos = [];
     gameState.historialTraspasos.unshift({
@@ -1839,6 +1913,7 @@ function aceptarOferta(jugadorId, precio, comprador) {
             gameState.squad.splice(i, 1);
 
             if (comprador) {
+                _presupuestosCPU[comprador] = (_presupuestosCPU[comprador] || 0) - precio;
                 var squadDest = obtenerSquadEquipo(comprador);
                 if (squadDest) {
                     var clone = JSON.parse(JSON.stringify(p));
@@ -1884,14 +1959,13 @@ function rechazarOferta(jugadorId) {
     if (gameState.mensajes.length > 0) seleccionarMensaje(gameState.mensajes[0].id);
 }
 
-function aceptarCesion(jugadorId, equipoDestino, precio) {
+function aceptarCesion(jugadorId, equipoDestino, duracion) {
     for (var i = 0; i < gameState.squad.length; i++) {
         if (gameState.squad[i].id === jugadorId) {
             var p = gameState.squad[i];
-            gameState.budget += precio;
             gameState.squad.splice(i, 1);
 
-            var finJornada = (gameState.matchday || 1) + 38;
+            var finJornada = (gameState.matchday || 1) + Math.round(duracion * 38);
             var squadDest = obtenerSquadEquipo(equipoDestino);
             var idEnDestino = null;
             if (squadDest) {
@@ -1932,18 +2006,17 @@ function aceptarCesion(jugadorId, equipoDestino, precio) {
                 jugador: p.name,
                 desde: gameState.team,
                 para: equipoDestino,
-                precio: precio,
+                precio: 0,
                 pos: p.pos,
                 rating: p.rating,
                 liga: gameState.league
             });
             limpiarAccionesMensajes(jugadorId);
             enviarMensaje('Dirección Deportiva', '\ud83d\udcc4 Cesión cerrada',
-                p.name + ' se marcha cedido al ' + equipoDestino + '. Ingreso: ' + formatearPresupuesto(precio) + '.');
+                p.name + ' se marcha cedido al ' + equipoDestino + ' por ' + duracion + ' temporada(s). Operación gratuita.');
             renderInbox();
             renderInboxView();
             if (gameState.mensajes.length > 0) seleccionarMensaje(gameState.mensajes[0].id);
-            document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
             renderSquadTable();
             renderSquadStats();
             break;
@@ -1958,15 +2031,15 @@ function esMercadoAbierto() {
 
 function simularMercadoCPU() {
     if (!esMercadoAbierto()) { console.log('[MERCADO CPU] Cerrado (J' + gameState.matchday + ')'); return; }
+    var todosEquipos = obtenerTodosEquipos();
     if (Object.keys(_presupuestosCPU).length === 0) {
-        var equipos = Database.getTeams(gameState.country, gameState.league);
-        equipos.forEach(function(eq) {
+        todosEquipos.forEach(function(eq) {
             if (eq.name !== gameState.team) {
                 _presupuestosCPU[eq.name] = parsearPresupuesto(eq.budget || '2.0M€');
             }
         });
     }
-    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var equipos = todosEquipos;
     var objetivo = 2 + Math.floor(Math.random() * 4);
     var realizadas = 0;
     var maxIter = objetivo * 15;
@@ -2060,13 +2133,72 @@ function simularMercadoCPU() {
     console.log('[MERCADO CPU] Objetivo: ' + objetivo + ', Realizadas: ' + realizadas);
 }
 
+function getGrupoPos(pos) {
+    if (pos === 'PO') return 'PO';
+    if (['DFC','LI','LD','CAI','CAD'].indexOf(pos) !== -1) return 'DEF';
+    if (['MCD','MC','MCO','MI','MD'].indexOf(pos) !== -1) return 'MC';
+    if (['EI','ED','DC'].indexOf(pos) !== -1) return 'ATA';
+    return 'MC';
+}
+
+function getPosicionesNecesitadas(squad, ratingEquipo) {
+    var grupos = { PO:['PO'], DEF:['DFC','LI','LD','CAI','CAD'], MC:['MCD','MC','MCO','MI','MD'], ATA:['EI','ED','DC'] };
+    var conteo = {}, maxR = {};
+    ['PO','DFC','LD','LI','CAI','CAD','MCD','MC','MCO','MI','MD','EI','ED','DC'].forEach(function(p){ conteo[p]=0; maxR[p]=0; });
+    squad.forEach(function(j) {
+        if (conteo[j.pos] !== undefined) { conteo[j.pos]++; if (j.rating > maxR[j.pos]) maxR[j.pos] = j.rating; }
+    });
+    var necesidades = [];
+    for (var g in grupos) {
+        var total = 0, mejor = 0;
+        grupos[g].forEach(function(p) { total += conteo[p]||0; if ((maxR[p]||0) > mejor) mejor = maxR[p]; });
+        var min = g==='PO' ? 2 : g==='DEF' ? 4 : g==='MC' ? 4 : 3;
+        if (total < min || mejor < (ratingEquipo||75)-8) necesidades.push(g);
+    }
+    return necesidades;
+}
+
+function obtenerTodosEquipos() {
+    var todos = [];
+    var paises = Database.getCountries();
+    paises.forEach(function(p) {
+        var ligas = Database.getLeagues(p.name);
+        ligas.forEach(function(l) {
+            var teams = Database.getTeams(p.name, l.name);
+            teams.forEach(function(t) { todos.push(t); });
+        });
+    });
+    return todos;
+}
+
+function calcularPrecioOferta(jugador, enTransferibles) {
+    var valStr = (jugador.val || '0.5M\u20ac').replace('\u20ac', '').replace('M', '').replace('K', '');
+    var valNum = parseFloat(valStr);
+    if ((jugador.val || '').indexOf('K') !== -1) valNum = valNum / 1000;
+    var valorMercado = Math.max(0.5, valNum);
+    var minMult = 0.85;
+    var maxMult = 1.30;
+    if (jugador.age <= 20) maxMult = 1.40;
+    if (enTransferibles) maxMult = Math.min(maxMult, 1.0);
+    var precio = valorMercado * (minMult + Math.random() * (maxMult - minMult));
+    return Math.round(precio * 100) / 100;
+}
+
 function generarOfertasCPU() {
     if (!gameState.squad || gameState.squad.length === 0) return;
     if (!esMercadoAbierto()) { console.log('[MERCADO] Cerrado (J' + gameState.matchday + ')'); return; }
 
+    var todosEquipos = obtenerTodosEquipos();
+    if (Object.keys(_presupuestosCPU).length === 0) {
+        todosEquipos.forEach(function(eq) {
+            if (eq.name !== gameState.team) {
+                _presupuestosCPU[eq.name] = parsearPresupuesto(eq.budget || '2.0M€');
+            }
+        });
+    }
+
     var intentos = 3 + Math.floor(Math.random() * 3);
     var ofertasEnviadas = 0;
-    var equipos = Database.getTeams(gameState.country, gameState.league);
 
     for (var t = 0; t < intentos; t++) {
         var disponibles = gameState.squad.filter(function(p) {
@@ -2074,31 +2206,75 @@ function generarOfertasCPU() {
         });
         if (disponibles.length === 0) { console.log('[MERCADO] Sin jugadores disponibles'); break; }
 
-        var elegido = disponibles[Math.floor(Math.random() * disponibles.length)];
+        var poolPonderado = [];
+        disponibles.forEach(function(p) {
+            var peso = 1;
+            if (p.enTransferibles) peso += 3;
+            if (p.enCedibles) peso += 5;
+            for (var w = 0; w < peso; w++) poolPonderado.push(p);
+        });
+        var elegido = poolPonderado[Math.floor(Math.random() * poolPonderado.length)];
         var valor = calcularPrecio(elegido.rating);
+        var esReserva = elegido.rating < 75;
+        var esJoven = elegido.age <= 21;
+        var grupoJug = getGrupoPos(elegido.pos);
 
-        var posibles = [];
-        equipos.forEach(function(eq) {
+        var posiblesCompra = [], posiblesCesion = [];
+        todosEquipos.forEach(function(eq) {
             if (eq.name === gameState.team) return;
             var presupuesto = _presupuestosCPU[eq.name] || parsearPresupuesto(eq.budget || '2.0M€');
-            if (presupuesto >= valor * 0.6) posibles.push(eq.name);
-        });
-        if (posibles.length === 0) { console.log('[MERCADO] Sin comprador con presupuesto para', elegido.name); continue; }
+            if (presupuesto >= valor * 0.6) posiblesCompra.push(eq.name);
 
-        var ofertante = posibles[Math.floor(Math.random() * posibles.length)];
-        if (Math.random() < 0.2) {
-            var precioCesion = Math.round(valor * 0.1 * 100) / 100;
-            enviarMensaje(ofertante, '\ud83d\udcc4 Cesión de ' + elegido.name,
-                'El ' + ofertante + ' solicita la cesión de ' + elegido.name + ' (coste: ' + precioCesion.toFixed(1) + 'M\u20ac).',
+            if (esReserva || esJoven) {
+                var sq = obtenerSquadEquipo(eq.name);
+                if (sq && sq.length > 0) {
+                    var needs = getPosicionesNecesitadas(sq, eq.rating);
+                    if (needs.indexOf(grupoJug) !== -1 && Math.abs(elegido.rating - (eq.rating || 75)) <= 5) {
+                        if (presupuesto >= valor * 0.1) posiblesCesion.push(eq.name);
+                    }
+                }
+            }
+        });
+
+        var esCesion = false;
+        if (elegido.enTransferibles && elegido.enCedibles) {
+            if (posiblesCompra.length > 0 && posiblesCesion.length > 0) esCesion = Math.random() < 0.5;
+            else if (posiblesCompra.length > 0) esCesion = false;
+            else if (posiblesCesion.length > 0) esCesion = true;
+            else continue;
+        } else if (elegido.enTransferibles) {
+            if (posiblesCompra.length === 0) { console.log('[MERCADO] Sin comprador para transferible', elegido.name); continue; }
+            esCesion = false;
+        } else if (elegido.enCedibles) {
+            if (posiblesCesion.length === 0) { console.log('[MERCADO] Sin cesión para cedible', elegido.name); continue; }
+            esCesion = true;
+        } else {
+            esCesion = (esReserva || esJoven) && posiblesCesion.length > 0 && Math.random() < 0.4;
+            if (!esCesion && posiblesCompra.length === 0 && posiblesCesion.length > 0) esCesion = true;
+        }
+
+        if (esCesion) {
+            if (posiblesCesion.length === 0) { console.log('[MERCADO] Sin cesión viable para', elegido.name); continue; }
+            var ofertante = posiblesCesion[Math.floor(Math.random() * posiblesCesion.length)];
+            var duraciones = [0.5, 1, 2];
+            var duracion = duraciones[Math.floor(Math.random() * duraciones.length)];
+            var textoDuracion = duracion === 0.5 ? '1/2 temporada' : duracion + ' temporadas';
+            enviarMensaje(ofertante, '\ud83d\udcc4 Oferta de Cesión por ' + elegido.name,
+                'El ' + ofertante + ' está interesado en incorporar a ' + elegido.name +
+                ' en calidad de cedido por una duración de ' + textoDuracion + '.',
                 [
-                    { texto: 'Aceptar cesión', fn: 'aceptarCesion(' + elegido.id + ',\'' + ofertante + '\',' + precioCesion + ')' },
+                    { texto: 'Aceptar Cesión', fn: 'aceptarCesion(' + elegido.id + ',\'' + ofertante + '\',' + duracion + ')' },
                     { texto: 'Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
                 ]
             );
             ofertasEnviadas++;
             console.log('[MERCADO] Cesión ofrecida:', elegido.name, '→', ofertante);
         } else {
-            var precio = Math.round(valor * (0.8 + Math.random() * 0.3) * 100) / 100;
+            if (posiblesCompra.length === 0) { console.log('[MERCADO] Sin comprador con presupuesto para', elegido.name); continue; }
+            var ofertante = posiblesCompra[Math.floor(Math.random() * posiblesCompra.length)];
+            var precio = calcularPrecioOferta(elegido, elegido.enTransferibles);
+            var presupComp = _presupuestosCPU[ofertante] || 0;
+            if (precio > presupComp) precio = presupComp;
             enviarMensaje(ofertante, '\ud83d\udce8 Oferta por ' + elegido.name,
                 'El ' + ofertante + ' ofrece ' + precio.toFixed(1) + 'M\u20ac por ' + elegido.name + '.',
                 [
@@ -2118,11 +2294,11 @@ function generarOfertasCPU() {
         }
         if (planB) {
             var compradorB = null;
-            for (var i = 0; i < equipos.length; i++) {
-                if (equipos[i].name !== gameState.team) { compradorB = equipos[i].name; break; }
+            for (var i = 0; i < todosEquipos.length; i++) {
+                if (todosEquipos[i].name !== gameState.team) { compradorB = todosEquipos[i].name; break; }
             }
             if (compradorB) {
-                var precioB = Math.round(calcularPrecio(planB.rating) * 0.5 * 100) / 100;
+                var precioB = calcularPrecioOferta(planB, false);
                 enviarMensaje(compradorB, '\ud83d\udce8 Oferta por ' + planB.name,
                     'El ' + compradorB + ' ofrece ' + precioB.toFixed(1) + 'M\u20ac por ' + planB.name + '.',
                     [
@@ -3383,6 +3559,7 @@ function seleccionarOpcionDropdown(tipo, valor) {
     } else if (tipo === 'formacion') {
         gameState.formacion = valor;
         seleccionID = null;
+        _tacticInitDone = false;
         actualizarDisplayFormacion();
         renderTacticPitch();
         renderTacticLists();
@@ -3503,6 +3680,7 @@ function mostrarMenuDescanso(matchState) {
     var titulares = matchState.jugadoresEnCampo.slice();
     var enCampoIds = {};
     matchState.jugadoresEnCampo.forEach(function(p) { enCampoIds[p.id] = true; });
+    var slotLabels = getSlotLabels(matchState.formacionUsada || gameState.formacion || '4-4-2 Estándar');
     var noUsados = [];
     if (gameState.squad) {
         gameState.squad.forEach(function(p) {
@@ -3510,9 +3688,10 @@ function mostrarMenuDescanso(matchState) {
         });
     }
 
-    function badgeHTML(p) {
-        var color = getColorLinea(p.pos);
-        return '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:9px;width:26px;padding:1px 0;">' + p.pos + '</span>';
+    function badgeHTML(p, idx) {
+        var posDisplay = (slotLabels && slotLabels[idx]) ? slotLabels[idx] : p.pos;
+        var color = getColorLinea(posDisplay);
+        return '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:9px;width:26px;padding:1px 0;">' + posDisplay + '</span>';
     }
 
     function stamColor(s) {
@@ -3525,10 +3704,10 @@ function mostrarMenuDescanso(matchState) {
     }
 
     var htmlTit = '<div class="sub-card-title">TITULARES (' + titulares.length + ')</div>';
-    titulares.forEach(function(p) {
+    titulares.forEach(function(p, idx) {
         var sel = estaSeleccionado(p.id, 'T') ? ' sub-selected' : '';
         htmlTit += '<div class="sub-row' + sel + '" onclick="onClickJugador(' + p.id + ',\'T\')">' +
-            badgeHTML(p) + ' ' +
+            badgeHTML(p, idx) + ' ' +
             '<span class="sub-jugador">' + p.name + '</span>' +
             '<span class="sub-stamina" style="color:' + stamColor(p.stamina) + ';">⚡' + (parseInt(p.stamina) || 100) + '%</span></div>';
     });
@@ -3610,6 +3789,7 @@ function confirmarCambios() {
     document.getElementById('matchCommentary').innerHTML += '<p style="color:#38bdf8;">¡Comienza la segunda parte!</p>';
     document.getElementById('gameSidebarNav').style.display = '';
     document.getElementById('matchSidebar').style.display = 'none';
+    if (matchState) matchState.formacionUsada = gameState.formacion || '4-4-2 Estándar';
 
     var org = organizarPlantilla();
     var matchXiActual = [];
@@ -3680,6 +3860,7 @@ function abrirDropdownMatch(e, tipo) {
             if (tipo === 'formacion') {
                 gameState.formacion = this.dataset.value;
                 document.getElementById('matchFormacionDisplay').innerText = this.dataset.value;
+                reajustarAlineacionPartido();
             } else if (tipo === 'presion') {
                 gameState.estiloPresion = this.dataset.value;
                 var labels = { suave: '🟢 Suave', pesada: '🟡 Pesada', extrema: '🔴 Extrema' };
@@ -3691,6 +3872,29 @@ function abrirDropdownMatch(e, tipo) {
     });
 
     dd.style.display = 'block';
+}
+
+function reajustarAlineacionPartido() {
+    if (!matchState) return;
+    var nuevoXi = seleccionarXI(gameState.squad, gameState.formacion || '4-4-2 Estándar').slice(0, 11);
+    if (nuevoXi.length === 0) return;
+
+    matchXi = nuevoXi.slice();
+    matchState.jugadoresEnCampo = nuevoXi.slice();
+    matchState.formacionUsada = gameState.formacion || '4-4-2 Estándar';
+    matchState.jugadoresQueJugaron = [];
+    matchXi.forEach(function(p) {
+        if (matchState.jugadoresQueJugaron.indexOf(p.id) === -1) matchState.jugadoresQueJugaron.push(p.id);
+    });
+    matchState.sustitucionesRestantes = 5;
+    matchState.sustitucionesRealizadas = [];
+
+    if (matchXi) renderMatchNotas(matchXi, matchEventos || [], awayGoals, false);
+
+    var halfMenu = document.getElementById('halfTimeMenu');
+    if (halfMenu && halfMenu.style.display === 'flex') {
+        mostrarMenuDescanso(matchState);
+    }
 }
 
 function runMatchSimulation() {
@@ -3729,6 +3933,7 @@ function runMatchSimulation() {
         tiempoDescanso: false,
         matchIntervalId: null,
         formaInicial: {},
+        formacionUsada: gameState.formacion || '4-4-2 Estándar',
         actualizarMatchXi: function(nuevoXi) { matchXi = nuevoXi.slice(); }
     };
 
@@ -4000,10 +4205,17 @@ function procesarRetornoCesiones() {
     for (var i = 0; i < gameState.cedidosFuera.length; i++) {
         var cr = gameState.cedidosFuera[i];
         if ((gameState.matchday || 1) >= cr.jornadaFin) {
+            var statsCesion = cr.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 };
             var squadD = _cachedSquads[cr.destino];
             if (squadD) {
                 for (var j = 0; j < squadD.length; j++) {
                     if (squadD[j].id === cr.idEnDestino) {
+                        var cloneStats = squadD[j].statsTemporada || {};
+                        statsCesion.partidos = (statsCesion.partidos || 0) + (cloneStats.partidos || 0);
+                        statsCesion.goles = (statsCesion.goles || 0) + (cloneStats.goles || 0);
+                        statsCesion.asistencias = (statsCesion.asistencias || 0) + (cloneStats.asistencias || 0);
+                        statsCesion.ta = (statsCesion.ta || 0) + (cloneStats.ta || 0);
+                        statsCesion.tr = (statsCesion.tr || 0) + (cloneStats.tr || 0);
                         squadD.splice(j, 1);
                         _cachedSquads[cr.destino] = squadD;
                         break;
@@ -4448,7 +4660,52 @@ function switchPlayerSubTab(btn, tabId) {
     btn.classList.add('active');
 }
 
+var _playerModalId = null;
+
+function buscarEnSquad(id) {
+    for (var i = 0; i < gameState.squad.length; i++) {
+        if (gameState.squad[i].id === id) return gameState.squad[i];
+    }
+    return null;
+}
+
+function actualizarBotonesMercado(p) {
+    var btnT = document.getElementById('btnTransferible');
+    var btnC = document.getElementById('btnCedible');
+    if (btnT) {
+        btnT.style.cssText = p.enTransferibles
+            ? 'font-size:8px;background:#92400e;border-color:#f59e0b;color:#fbbf24;'
+            : 'font-size:8px;background:#182230;border-color:#28374d;color:#94a3b8;';
+        btnT.innerText = (p.enTransferibles ? '\u2713 ' : '') + 'Transferible';
+    }
+    if (btnC) {
+        btnC.style.cssText = p.enCedibles
+            ? 'font-size:8px;background:#1e3a5f;border-color:#38bdf8;color:#38bdf8;'
+            : 'font-size:8px;background:#182230;border-color:#28374d;color:#94a3b8;';
+        btnC.innerText = (p.enCedibles ? '\u2713 ' : '') + 'Cedible';
+    }
+}
+
+function toggleTransferible() {
+    var p = buscarEnSquad(_playerModalId);
+    if (!p) return;
+    p.enTransferibles = !p.enTransferibles;
+    actualizarBotonesMercado(p);
+    renderSquadTable();
+    renderSquadStats();
+}
+
+function toggleCedible() {
+    var p = buscarEnSquad(_playerModalId);
+    if (!p) return;
+    p.enCedibles = !p.enCedibles;
+    actualizarBotonesMercado(p);
+    renderSquadTable();
+    renderSquadStats();
+}
+
 function showPlayerDetail(p) {
+    _playerModalId = p.id;
     document.getElementById('playerModalDorsal').innerText = '#' + (p.dorsal || p.id || '-');
     document.getElementById('playerModalPos').className = 'pos-badge pos-' + p.pos;
     document.getElementById('playerModalPos').innerText = p.pos;
@@ -4471,6 +4728,7 @@ function showPlayerDetail(p) {
     document.querySelectorAll('#playerModal .btn-retro.btn-sm').forEach(function (b) { b.classList.remove('active'); });
     var btns = document.querySelectorAll('#playerModal .btn-retro.btn-sm');
     if (btns.length > 0) btns[0].classList.add('active');
+    actualizarBotonesMercado(p);
     document.getElementById('playerModal').style.zIndex = '300';
     document.getElementById('playerModal').classList.add('active');
 }

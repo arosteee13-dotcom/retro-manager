@@ -600,7 +600,13 @@
             <div><span style="font-size: 12px; color:#94a3b8;">TA</span><br><span id="pTA" class="stat-val" style="color:#facc15;">0</span></div>
             <div><span style="font-size: 12px; color:#94a3b8;">TR</span><br><span id="pTR" class="stat-val" style="color:#fca5a5;">0</span></div>
         </div>
-        <button class="btn-retro danger btn-sm" onclick="closePlayerModal()" style="align-self: flex-end;">CERRAR</button>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 4px;">
+                <button id="btnTransferible" class="btn-retro btn-sm" onclick="toggleTransferible()" style="font-size:8px;background:#182230;border-color:#28374d;color:#94a3b8;">🏷️ Transferible</button>
+                <button id="btnCedible" class="btn-retro btn-sm" onclick="toggleCedible()" style="font-size:8px;background:#182230;border-color:#28374d;color:#94a3b8;">🔄 Cedible</button>
+            </div>
+            <button class="btn-retro danger btn-sm" onclick="closePlayerModal()">CERRAR</button>
+        </div>
     </div>
 </div>
 
