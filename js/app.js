@@ -574,7 +574,10 @@ function switchGameTab(btn, tabId) {
         renderMercado();
     }
     if (tabId === 'tab-competiciones') {
-        poblarSelectoresClasificacion();
+        if (_torneoPaisActual === null) _torneoPaisActual = gameState.country;
+        if (_torneoLigaActual === null) _torneoLigaActual = gameState.league;
+        renderTorneoPaises();
+        renderTorneoTorneos();
         renderClasificacion();
     }
     if (tabId === 'tab-copa') {
@@ -2890,69 +2893,13 @@ function calcularClasificacion(equipos, fixture, hastaJornada) {
     return tabla;
 }
 
-function poblarSelectoresClasificacion() {
-    var selPais = document.getElementById('selClasificacionPais');
-    var selLiga = document.getElementById('selClasificacionLiga');
-    if (!selPais || !selLiga) return;
-
-    if (selPais.options.length === 0) {
-        var paises = Database.getCountries();
-        paises.forEach(function(c){
-            var opt = document.createElement('option');
-            opt.value = c.name;
-            opt.innerText = c.icon + ' ' + c.name;
-            if (c.name === gameState.country) opt.selected = true;
-            selPais.appendChild(opt);
-        });
-        selPais.onchange = function(){
-            selLiga.innerHTML = '';
-            var ligas2 = Database.getLeagues(this.value);
-            ligas2.forEach(function(l){
-                var opt = document.createElement('option');
-                opt.value = l.name;
-                opt.innerText = l.name;
-                selLiga.appendChild(opt);
-            });
-            renderClasificacion();
-        };
-    }
-    if (selLiga.options.length === 0) {
-        var ligas = Database.getLeagues(gameState.country);
-        ligas.forEach(function(l){
-            var opt = document.createElement('option');
-            opt.value = l.name;
-            opt.innerText = l.name;
-            if (l.name === gameState.league) opt.selected = true;
-            selLiga.appendChild(opt);
-        });
-        selLiga.onchange = function(){ renderClasificacion(); };
-    }
-}
-
-function poblarLigasClasificacion() {
-    var selPais = document.getElementById('selClasificacionPais');
-    var selLiga = document.getElementById('selClasificacionLiga');
-    if (!selPais || !selLiga) return;
-    selLiga.innerHTML = '';
-    var ligas = Database.getLeagues(selPais.value);
-    ligas.forEach(function(l){
-        var opt = document.createElement('option');
-        opt.value = l.name;
-        opt.innerText = l.name;
-        selLiga.appendChild(opt);
-    });
-    renderClasificacion();
-}
-
 function renderClasificacion() {
     var container = document.getElementById('clasificacionBody');
     var leyenda = document.getElementById('leyendaColores');
     if (!container) return;
 
-    var selPais = document.getElementById('selClasificacionPais');
-    var selLiga = document.getElementById('selClasificacionLiga');
-    var paisSel = selPais ? selPais.value : gameState.country;
-    var ligaSel = selLiga ? selLiga.value : gameState.league;
+    var paisSel = _torneoPaisActual || gameState.country;
+    var ligaSel = _torneoLigaActual || gameState.league;
 
     if (!gameState.fixture || gameState.fixture.length === 0) generarCalendario();
     var equipos = Database.getTeams(paisSel, ligaSel);
@@ -3008,8 +2955,8 @@ function renderClasificacion() {
     // Columna derecha: top goleadores y asistentes
     var colStats = document.getElementById('colStats');
     if (colStats) {
-        var pais = selPais ? selPais.value : gameState.country;
-        var liga = selLiga ? selLiga.value : gameState.league;
+        var pais = _torneoPaisActual || gameState.country;
+        var liga = _torneoLigaActual || gameState.league;
         var eqs = Database.getTeams(pais, liga);
         var goleadores = [], asistentes = [];
         eqs.forEach(function(eq) {
@@ -3071,74 +3018,49 @@ function switchCompSubTab(btn, tabId) {
     if (btn) btn.classList.add('active');
 }
 
-function renderEstadisticas() {
-    var content = document.getElementById('estadisticasContent');
-    if (!content) return;
+var _torneoPaisActual = null;
+var _torneoLigaActual = null;
 
-    var selPais = document.getElementById('selClasificacionPais');
-    var selLiga = document.getElementById('selClasificacionLiga');
-    var pais = selPais ? selPais.value : gameState.country;
-    var liga = selLiga ? selLiga.value : gameState.league;
-
-    var equipos = Database.getTeams(pais, liga);
-    if (!equipos || equipos.length === 0) {
-        content.innerHTML = '<div style="color:#64748b;text-align:center;padding:10px;font-size:13px;">No hay datos disponibles.</div>';
-        return;
-    }
-
-    var todosJugadores = [];
-    var usuariosYaVistos = false;
-    equipos.forEach(function(eq){
-        var squad;
-        if (eq.name === gameState.team && gameState.squad && gameState.squad.length > 0) {
-            squad = gameState.squad;
-        } else if (_cachedSquads[eq.name]) {
-            squad = _cachedSquads[eq.name];
-        } else if (eq.squad && eq.squad.length > 0) {
-            squad = eq.squad;
-        } else {
-            squad = generarPlantillaSimulada(eq.name, pais, eq.rating || 75);
-            _cachedSquads[eq.name] = squad;
-        }
-        squad.forEach(function(j){
-            var st = j.statsTemporada || {};
-            todosJugadores.push({
-                nombre: j.name,
-                dorsal: j.dorsal || '-',
-                equipo: eq.name,
-                gol: st.goles || 0,
-                asi: st.asistencias || 0,
-                ta: st.ta || 0,
-                tr: st.tr || 0
-            });
-        });
-    });
-
-    function topList(arr, key, label, color, unidad) {
-        var sorted = arr.slice().sort(function(a,b){ return b[key] - a[key]; });
-        var top = sorted.slice(0, 5).filter(function(p){ return p[key] > 0; });
-        if (top.length === 0) return '';
-        var html = '<div class="est-card"><div class="est-card-title">' + label + '</div>';
-        top.forEach(function(p, i){
-            html += '<div class="est-row">' +
-                '<span>' + (i+1) + '. <span style="color:#94a3b8;">[' + p.dorsal + ']</span> ' + p.nombre + ' <span style="color:#64748b;">(' + p.equipo + ')</span></span>' +
-                '<span class="est-val" style="color:' + color + ';">' + p[key] + (unidad || '') + '</span></div>';
-        });
-        html += '</div>';
-        return html;
-    }
-
+function renderTorneoPaises() {
+    var container = document.getElementById('torneoPaises');
+    if (!container) return;
+    var paises = Database.getCountries();
     var html = '';
-    html += topList(todosJugadores, 'gol', '<i class="fa-solid fa-futbol"></i> MÁXIMOS GOLEADORES', '#22c55e', ' goles');
-    html += topList(todosJugadores, 'asi', '<i class="fa-solid fa-handshake"></i> MÁXIMOS ASISTENTES', '#38bdf8', ' asis');
-    html += topList(todosJugadores, 'ta', '<i class="fa-solid fa-square" style="color:#eab308;"></i> MÁS TARJETAS AMARILLAS', '#eab308', ' TA');
-    html += topList(todosJugadores, 'tr', '<i class="fa-solid fa-square" style="color:#ef4444;"></i> MÁS TARJETAS ROJAS', '#ef4444', ' TR');
+    paises.forEach(function(p) {
+        var active = p.name === _torneoPaisActual ? ' active' : '';
+        html += '<div class="torneo-pais-btn' + active + '" onclick="seleccionarPaisClasif(\'' + p.name.replace(/'/g,"\\'") + '\')">' +
+            p.icon + ' ' + p.name + '</div>';
+    });
+    container.innerHTML = html;
+}
 
-    if (!html) {
-        html = '<div style="color:#64748b;text-align:center;padding:10px;font-size:13px;">No hay estadísticas disponibles. Juega algunos partidos para generar datos.</div>';
-    }
+function renderTorneoTorneos() {
+    var container = document.getElementById('torneoTorneos');
+    if (!container) return;
+    var ligas = Database.getLeagues(_torneoPaisActual);
+    var html = '';
+    ligas.forEach(function(l) {
+        var active = l.name === _torneoLigaActual ? ' active' : '';
+        html += '<div class="torneo-torneo-btn' + active + '" onclick="seleccionarLigaClasif(\'' + l.name.replace(/'/g,"\\'") + '\')">' +
+            '<i class="fa-solid fa-table"></i> ' + l.name + '</div>';
+    });
+    container.innerHTML = html;
+}
 
-    content.innerHTML = html;
+function seleccionarPaisClasif(pais) {
+    _torneoPaisActual = pais;
+    _torneoLigaActual = null;
+    var ligas = Database.getLeagues(pais);
+    if (ligas.length > 0) _torneoLigaActual = ligas[0].name;
+    renderTorneoPaises();
+    renderTorneoTorneos();
+    renderClasificacion();
+}
+
+function seleccionarLigaClasif(liga) {
+    _torneoLigaActual = liga;
+    renderTorneoTorneos();
+    renderClasificacion();
 }
 
 function renderTacticPitch() {
