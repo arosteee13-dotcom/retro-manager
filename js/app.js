@@ -599,9 +599,6 @@ function switchGameTab(btn, tabId) {
         renderTorneoTorneos();
         renderClasificacion();
     }
-    if (tabId === 'tab-copa') {
-        renderCopaView();
-    }
 }
 
 function switchSquadSubTab(btn, tabId) {
@@ -3019,23 +3016,14 @@ function simularRondaCopa(orden) {
     }
 }
 
-function renderCopaView() {
-    var container = document.getElementById('copaBracket');
-    if (!container) return;
-    if (!gameState.copa) generarCuadroCopa();
-
-    var campeonEl = document.getElementById('copaCampeon');
-    if (gameState.copa.campeon) {
-        campeonEl.innerHTML = '\ud83c\udfc6 Campeón: <strong>' + gameState.copa.campeon + '</strong>';
-    } else {
-        campeonEl.innerHTML = '';
-    }
-
+function buildCopaBracketHTML(copaData, roundIndex) {
+    if (!copaData) return '';
     var html = '';
-    gameState.copa.rondas.forEach(function(ronda) {
+    copaData.rondas.forEach(function(ronda, idx) {
+        if (roundIndex !== undefined && roundIndex >= 0 && idx !== roundIndex) return;
         if (ronda.partidos.length === 0 && !ronda.completada) return;
         html += '<div class="copa-round">';
-        html += '<div class="copa-round-title">' + ronda.nombre + (ronda.completada ? ' <span style="color:#22c55e;font-size:9px;">✓</span>' : '') + '</div>';
+        html += '<div class="copa-round-title">' + ronda.nombre + (ronda.completada ? ' <span style="color:#22c55e;font-size:9px;">\u2713</span>' : '') + '</div>';
         ronda.partidos.forEach(function(p) {
             var esUsuario = p.local === gameState.team || p.visitante === gameState.team;
             var clase = 'copa-match' + (esUsuario ? ' user-match' : '');
@@ -3051,7 +3039,7 @@ function renderCopaView() {
                     html += ' <span class="copa-et">(T.E.)</span>';
                 }
                 var ganador = p.resultado.golesL > p.resultado.golesV ? p.local : p.visitante;
-                if (ganador === gameState.team) html += ' <span style="color:#22c55e;">&#x2714;</span>';
+                if (ganador === gameState.team) html += ' <span style="color:#22c55e;">\u2714</span>';
             } else {
                 html += ' <span class="copa-pend">Pendiente</span>';
             }
@@ -3059,7 +3047,20 @@ function renderCopaView() {
         });
         html += '</div>';
     });
-    container.innerHTML = html;
+    return html;
+}
+
+function renderCopaView() {
+    var container = document.getElementById('copaBracket');
+    if (!container) return;
+    if (!gameState.copa) generarCuadroCopa();
+    var campeonEl = document.getElementById('copaCampeon');
+    if (gameState.copa.campeon) {
+        campeonEl.innerHTML = '\ud83c\udfc6 Campe\u00f3n: <strong>' + gameState.copa.campeon + '</strong>';
+    } else {
+        campeonEl.innerHTML = '';
+    }
+    container.innerHTML = buildCopaBracketHTML(gameState.copa);
 }
 
 function generarFixturePara(ligaName) {
@@ -3304,6 +3305,12 @@ function renderClasificacion() {
     var paisSel = _torneoPaisActual || gameState.country;
     var ligaSel = _torneoLigaActual || gameState.league;
 
+    var copas = obtenerCopasPais(paisSel);
+    if (copas.indexOf(ligaSel) !== -1) {
+        renderCopaEnClasificacion(ligaSel);
+        return;
+    }
+
     if (!gameState.fixturesPorLiga || Object.keys(gameState.fixturesPorLiga).length === 0) {
         if (!gameState.fixture || gameState.fixture.length === 0) generarCalendario();
     }
@@ -3396,6 +3403,32 @@ function renderClasificacion() {
     }
 }
 
+function renderCopaEnClasificacion(nombreCopa) {
+    if (!gameState.copa) generarCuadroCopa();
+    var container = document.getElementById('clasificacionBody');
+    var leyenda = document.getElementById('leyendaColores');
+    var colStats = document.getElementById('colStats');
+    if (leyenda) leyenda.innerHTML = '';
+    if (colStats) colStats.innerHTML = '';
+    var html = '<tr><td colspan="9" style="padding:6px 0;">';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;">';
+    if (gameState.copa && gameState.copa.rondas) {
+        gameState.copa.rondas.forEach(function(r, idx) {
+            var act = idx === _copaFilterRound ? ' active' : '';
+            html += '<div class="torneo-torneo-btn' + act + '" onclick="filtrarRondaCopa(' + idx + ')" style="font-size:8px;padding:4px 6px;">' + r.nombre + '</div>';
+        });
+    }
+    html += '</div>';
+    html += '<div style="max-height:280px;overflow-y:auto;">' + buildCopaBracketHTML(gameState.copa, _copaFilterRound) + '</div>';
+    html += '</td></tr>';
+    container.innerHTML = html;
+}
+
+function filtrarRondaCopa(idx) {
+    _copaFilterRound = idx;
+    renderCopaEnClasificacion(_torneoLigaActual);
+}
+
 var _cachedSquads = {};
 var _presupuestosCPU = {};
 
@@ -3428,6 +3461,14 @@ function switchCompSubTab(btn, tabId) {
 
 var _torneoPaisActual = null;
 var _torneoLigaActual = null;
+var _copaFilterRound = 0;
+
+function obtenerCopasPais(pais) {
+    if (pais === 'España') return ['Copa del Rey'];
+    if (pais === 'Inglaterra') return ['FA Cup'];
+    if (pais === 'Italia') return ['Coppa Italia'];
+    return [];
+}
 
 function renderTorneoPaises() {
     var container = document.getElementById('torneoPaises');
@@ -3452,6 +3493,12 @@ function renderTorneoTorneos() {
         html += '<div class="torneo-torneo-btn' + active + '" onclick="seleccionarLigaClasif(\'' + l.name.replace(/'/g,"\\'") + '\')">' +
             '<i class="fa-solid fa-table"></i> ' + l.name + '</div>';
     });
+    var copas = obtenerCopasPais(_torneoPaisActual);
+    copas.forEach(function(c) {
+        var active = c === _torneoLigaActual ? ' active' : '';
+        html += '<div class="torneo-torneo-btn' + active + '" onclick="seleccionarLigaClasif(\'' + c.replace(/'/g,"\\'") + '\')">' +
+            '<i class="fa-solid fa-trophy"></i> ' + c + '</div>';
+    });
     container.innerHTML = html;
 }
 
@@ -3467,6 +3514,7 @@ function seleccionarPaisClasif(pais) {
 
 function seleccionarLigaClasif(liga) {
     _torneoLigaActual = liga;
+    _copaFilterRound = 0;
     renderTorneoTorneos();
     renderClasificacion();
 }
@@ -3505,7 +3553,7 @@ function renderTacticPitch() {
         var badge = '<span class="pos-badge" style="background:' + color + ';color:#fff;font-size:11px;width:32px;padding:2px 0;">' + slotPos + '</span>';
         var stam = p.stamina || '100%';
         var stamCol = staminaColor(stam);
-        var capIcon = (p.id === gameState.capitanId) ? ' <span style="color:#eab308;font-size:12px;">👑</span>' : '';
+        var capIcon = (p.id === gameState.capitanId) ? ' <span style="color:#eab308;font-size:11px;"><i class="fa-solid fa-star"></i></span>' : '';
         html += '<div class="tactic-list-item' + sel + '" data-pid="' + p.id + '">' +
             '<span style="font-size:11px;color:#e2e8f0;min-width:24px;">' + (p.dorsal || '-') + '</span> ' +
             badge + ' ' +
@@ -3553,7 +3601,7 @@ function renderTacticLists() {
         var stam = p.stamina || '100%';
         var n = parseInt(stam);
         var stamCol = n >= 90 ? '#22c55e' : n >= 70 ? '#eab308' : '#ef4444';
-        var capIcon = (p.id === gameState.capitanId) ? ' <span style="color:#eab308;font-size:11px;">👑</span>' : '';
+        var capIcon = (p.id === gameState.capitanId) ? ' <span style="color:#eab308;font-size:10px;"><i class="fa-solid fa-star"></i></span>' : '';
         return '<div class="tactic-list-item' + sel + '" data-pid="' + p.id + '">' +
             '<span style="font-size:11px;color:#e2e8f0;min-width:24px;">' + (p.dorsal || '-') + '</span> ' +
             badge + ' ' +
