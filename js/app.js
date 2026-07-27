@@ -43,7 +43,8 @@ const gameState = {
         generacionHecha: false
     },
     patrocinadorActual: null,
-    ofertasPatrocinio: []
+    ofertasPatrocinio: [],
+    supercopa: null
 };
 
 var _formacionesEquipos = {
@@ -678,6 +679,14 @@ function startGame() {
         });
     });
     if (!gameState.fixture || gameState.fixture.length === 0) generarFixture();
+    if (gameState.country === 'España' && !gameState._supercopaClasificados && !gameState.supercopa) {
+        var eqs = Database.getTeams(gameState.country, gameState.league);
+        var ordenados = eqs.slice().sort(function(a, b) { return (b.rating || 75) - (a.rating || 75); });
+        var top4 = ordenados.slice(0, 4).map(function(t) { return t.name; });
+        if (top4.length === 4) {
+            gameState._supercopaClasificados = top4;
+        }
+    }
     generarCalendario();
 
     if (!gameState.objetivoTemporada || gameState.objetivoTemporada === 'Evitar el descenso') {
@@ -1183,7 +1192,7 @@ function renderSquadTable() {
         tr.innerHTML =
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + getEstadoIcono(p) + (p.enTransferibles ? ' <span style="font-size:8px;background:#92400e;color:#fbbf24;padding:1px 4px;border-radius:3px;font-weight:bold;">TRA</span>' : '') + (p.enCedibles ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + ' <span style="font-size:7px;background:#1a2a3e;color:#94a3b8;cursor:pointer;padding:1px 4px;border-radius:3px;" onclick="event.stopPropagation();bajarAlFilial(' + p.id + ')">\u2193 Filial</span></td>' +
+            '<td>' + p.name + getEstadoIcono(p) + (p.enTransferibles ? ' <span style="font-size:8px;background:#92400e;color:#fbbf24;padding:1px 4px;border-radius:3px;font-weight:bold;">TRA</span>' : '') + (p.enCedibles ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -2023,6 +2032,22 @@ function iniciarNuevaTemporada() {
         });
         if (tabla.length > 0 && tabla[0].nombre) {
             registrarTitulo(tabla[0].nombre, 'Primera División', seasonStr);
+        }
+        if (gameState.country === 'España' && tabla.length >= 4) {
+            var campeonLiga = tabla[0].nombre;
+            var subLiga = tabla[1].nombre;
+            var campeonCopa = gameState.copa && gameState.copa.campeon ? gameState.copa.campeon : null;
+            var subCopa = gameState.copa && gameState.copa.subcampeon ? gameState.copa.subcampeon : null;
+            var clasificados = [];
+            function addTeam(n) { if (n && clasificados.indexOf(n) === -1 && clasificados.length < 4) clasificados.push(n); }
+            addTeam(campeonLiga);
+            addTeam(campeonCopa);
+            addTeam(subLiga);
+            addTeam(subCopa);
+            for (var ci = 2; ci < tabla.length && clasificados.length < 4; ci++) addTeam(tabla[ci].nombre);
+            if (clasificados.length === 4) {
+                gameState._supercopaClasificados = clasificados;
+            }
         }
     }
     actualizarObjetivosDirectiva();
@@ -3585,6 +3610,12 @@ function simularRondaCopa(orden) {
         }
     } else {
         gameState.copa.campeon = ganadores[0] || null;
+        if (ronda.partidos.length > 0 && ronda.partidos[0].resultado) {
+            var fp = ronda.partidos[0];
+            gameState.copa.subcampeon = fp.resultado.golesL > fp.resultado.golesV ? fp.visitante : fp.local;
+        } else {
+            gameState.copa.subcampeon = null;
+        }
         if (gameState.copa.campeon) {
             gameState.budget += 5;
             var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
@@ -3734,6 +3765,29 @@ function generarCalendario() {
             });
         }
 
+        // Supercopa de España
+        if (gameState._supercopaClasificados) {
+            generarSupercopa();
+        }
+        if (gameState.supercopa) {
+            if (s === 19 && gameState.supercopa.rondas[0]) {
+                gameState.supercopa.rondas[0].partidos.forEach(function(p) {
+                    if (p.local === gameState.team || p.visitante === gameState.team) {
+                        var cond = p.local === gameState.team ? 'C' : 'V';
+                        partidos.push({ competicion: 'Supercopa', rival: p.local === gameState.team ? p.visitante : p.local, condicion: cond, jugado: false, resultado: null, supercopaRondaIdx: 0, campoNeutral: true });
+                    }
+                });
+            }
+            if (s === 20 && gameState.supercopa.rondas[1] && gameState.supercopa.rondas[1].partidos.length > 0) {
+                gameState.supercopa.rondas[1].partidos.forEach(function(p) {
+                    if (p.local === gameState.team || p.visitante === gameState.team) {
+                        var cond = p.local === gameState.team ? 'C' : 'V';
+                        partidos.push({ competicion: 'Supercopa', rival: p.local === gameState.team ? p.visitante : p.local, condicion: cond, jugado: false, resultado: null, supercopaRondaIdx: 1, campoNeutral: true });
+                    }
+                });
+            }
+        }
+
         var rival = rivales[(s - 1) % rivales.length];
         var cond = (s % 2 === 1) ? 'C' : 'V';
         partidos.push({ competicion: 'LaLiga', rival: rival, condicion: cond, jugado: false, resultado: null });
@@ -3751,40 +3805,76 @@ function renderCalendario() {
     if (gameState.squad && gameState.squad.length === 0) { container.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">Inicia una partida para ver el calendario.</div>'; return; }
 
     var currentWeek = gameState.matchday || 1;
-    var html = '';
+    var resultados = [], proximos = [], semanaActual = null;
+
     for (var s = 0; s < gameState.calendario.length; s++) {
         var semana = gameState.calendario[s];
-        var esActual = (semana.semana === currentWeek);
-        var claseCard = 'week-card' + (esActual ? ' current' : '');
-
-        html += '<div class="' + claseCard + '">';
-        html += '<div class="week-header">Semana ' + semana.semana + '</div>';
-
         for (var p = 0; p < semana.partidos.length; p++) {
-            var partido = semana.partidos[p];
-            var badgeComp = '';
-            if (partido.competicion === 'LaLiga') badgeComp = '<span class="comp-badge laliga">LaLiga</span>';
-            else if (partido.competicion === 'Copa') badgeComp = '<span class="comp-badge copa">Copa</span>';
-            else badgeComp = '<span class="comp-badge champions">Champions</span>';
-
-            var condText = partido.condicion === 'C' ? '<span class="cond-local"><i class="fa-solid fa-house"></i></span>' : '<span class="cond-visit"><i class="fa-solid fa-arrow-right"></i></span>';
-            var badgeRes = '';
-            if (!partido.jugado) {
-                badgeRes = '<span class="result-badge pendiente">Pendiente</span>';
-            } else if (partido.resultado) {
-                var gf = partido.resultado.golesFavor;
-                var gc = partido.resultado.golesContra;
-                if (gf > gc) badgeRes = '<span class="result-badge victoria">' + gf + '-' + gc + '</span>';
-                else if (gf === gc) badgeRes = '<span class="result-badge empate">' + gf + '-' + gc + '</span>';
-                else badgeRes = '<span class="result-badge derrota">' + gf + '-' + gc + '</span>';
+            var partido = JSON.parse(JSON.stringify(semana.partidos[p]));
+            partido.semana = semana.semana;
+            if (semana.semana === currentWeek) {
+                semanaActual = partido;
+            } else if (partido.jugado) {
+                if (partido.competicion === 'LaLiga') resultados.push(partido);
+            } else {
+                if (partido.competicion === 'LaLiga') proximos.push(partido);
             }
-
-            html += '<div class="match-row' + (esActual && !partido.jugado ? ' match-next' : '') + '">';
-            html += badgeComp + ' <span class="match-rival">' + partido.rival + '</span> <span class="match-cond">' + condText + '</span> ' + badgeRes;
-            html += '</div>';
         }
-        html += '</div>';
     }
+    resultados.reverse();
+
+    var compBadge = function(c) {
+        if (c === 'LaLiga') return '<span class="comp-badge laliga">LIGA</span>';
+        if (c === 'Copa') return '<span class="comp-badge copa">COPA</span>';
+        return '<span class="comp-badge champions">UCL</span>';
+    };
+    var condIcon = function(c) { return c === 'C' ? '<i class="fa-solid fa-house" style="color:#22c55e;"></i>' : '<i class="fa-solid fa-arrow-right" style="color:#f97316;"></i>'; };
+    var resBadge = function(gf, gc) {
+        if (gf > gc) return '<span class="result-badge victoria">' + gf + '-' + gc + ' <i class="fa-solid fa-check" style="font-size:9px;"></i></span>';
+        if (gf === gc) return '<span class="result-badge empate">' + gf + '-' + gc + ' <i class="fa-solid fa-minus" style="font-size:9px;"></i></span>';
+        return '<span class="result-badge derrota">' + gf + '-' + gc + ' <i class="fa-solid fa-xmark" style="font-size:9px;"></i></span>';
+    };
+
+    var html = '';
+    html += '<div class="cal-header"><i class="fa-solid fa-calendar-days"></i> CALENDARIO <span style="font-size:10px;color:#64748b;margin-left:auto;">Jornada ' + currentWeek + ' / ' + gameState.totalMatchdays + '</span></div>';
+
+    if (semanaActual && !semanaActual.jugado) {
+        html += '<div class="next-match-card">' +
+            '<div class="next-match-header">' +
+            condIcon(semanaActual.condicion) + ' ' + (semanaActual.condicion === 'C' ? 'LOCAL' : 'VISITANTE') +
+            ' <span class="comp-badge ' + (semanaActual.competicion === 'Copa' ? 'copa' : 'laliga') + '" style="margin-left:6px;">' + (semanaActual.competicion === 'Copa' ? 'COPA' : 'LIGA') + '</span>' +
+            '<span class="next-match-jornada">Jornada ' + semanaActual.semana + '</span></div>' +
+            '<div class="next-match-team">' + (semanaActual.condicion === 'C' ? gameState.team : semanaActual.rival) + '</div>' +
+            '<div class="next-match-vs">vs</div>' +
+            '<div class="next-match-team">' + (semanaActual.condicion === 'V' ? gameState.team : semanaActual.rival) + '</div>' +
+            '<div class="next-match-info"><i class="fa-solid fa-location-dot"></i> ' + gameState.stadium + ' <span class="result-badge pendiente" style="margin-left:auto;">\u23f3 Pendiente</span></div>' +
+            '</div>';
+    }
+
+    if (resultados.length > 0) {
+        html += '<div class="cal-section-title"><i class="fa-solid fa-clock-rotate-left"></i> RESULTADOS</div>';
+        resultados.forEach(function(r) {
+            var cls = r.golesFavor !== undefined && r.golesFavor > r.golesContra ? ' cal-row-win' : r.golesFavor !== undefined && r.golesFavor === r.golesContra ? ' cal-row-draw' : '';
+            html += '<div class="cal-row' + cls + '">' +
+                '<span class="cal-row-j">J' + r.semana + '</span>' +
+                '<span class="cal-row-icon">' + condIcon(r.condicion) + '</span>' +
+                '<span class="cal-row-rival">' + r.rival + '</span>' +
+                resBadge(r.golesFavor, r.golesContra) +
+                '</div>';
+        });
+    }
+
+    if (proximos.length > 0) {
+        html += '<div class="cal-section-title"><i class="fa-solid fa-clock"></i> PR\u00d3XIMOS PARTIDOS</div>';
+        proximos.forEach(function(r) {
+            html += '<div class="cal-row">' +
+                '<span class="cal-row-j">J' + r.semana + '</span>' +
+                '<span class="cal-row-icon">' + condIcon(r.condicion) + '</span>' +
+                '<span class="cal-row-rival">' + r.rival + '</span>' +
+                '<span class="result-badge pendiente">\u23f3 Pendiente</span></div>';
+        });
+    }
+
     container.innerHTML = html;
 }
 
@@ -3987,7 +4077,11 @@ function renderClasificacion() {
 }
 
 function renderCopaEnClasificacion(nombreCopa) {
-    if (!gameState.copa) generarCuadroCopa();
+    var esSupercopa = nombreCopa === 'Supercopa de España';
+    var copaData = esSupercopa ? gameState.supercopa : gameState.copa;
+    if (!esSupercopa && !gameState.copa) generarCuadroCopa();
+    copaData = esSupercopa ? gameState.supercopa : gameState.copa;
+
     var thead = document.querySelector('#comp-clasificacion thead');
     if (thead) thead.style.display = 'none';
     var container = document.getElementById('clasificacionBody');
@@ -3995,16 +4089,21 @@ function renderCopaEnClasificacion(nombreCopa) {
     var colStats = document.getElementById('colStats');
     if (leyenda) leyenda.innerHTML = '';
     if (colStats) colStats.innerHTML = '';
+
+    if (!copaData || !copaData.rondas) {
+        var msg = esSupercopa ? 'La Supercopa de España se disputará a partir de la segunda temporada.' : 'No hay datos disponibles.';
+        container.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#64748b;font-size:12px;">' + msg + '</td></tr>';
+        return;
+    }
+
     var html = '<tr><td colspan="9" style="padding:6px 0;">';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;">';
-    if (gameState.copa && gameState.copa.rondas) {
-        gameState.copa.rondas.forEach(function(r, idx) {
-            var act = idx === _copaFilterRound ? ' active' : '';
-            html += '<div class="torneo-torneo-btn' + act + '" onclick="filtrarRondaCopa(' + idx + ')" style="font-size:8px;padding:4px 6px;">' + r.nombre + '</div>';
-        });
-    }
+    copaData.rondas.forEach(function(r, idx) {
+        var act = idx === _copaFilterRound ? ' active' : '';
+        html += '<div class="torneo-torneo-btn' + act + '" onclick="filtrarRondaCopa(' + idx + ')" style="font-size:8px;padding:4px 6px;">' + r.nombre + '</div>';
+    });
     html += '</div>';
-    html += '<div style="width:340px;height:248px;overflow-y:auto;">' + buildCopaBracketHTML(gameState.copa, _copaFilterRound) + '</div>';
+    html += '<div style="width:340px;height:248px;overflow-y:auto;">' + buildCopaBracketHTML(copaData, _copaFilterRound) + '</div>';
     html += '</td></tr>';
     container.innerHTML = html;
 }
@@ -4049,10 +4148,79 @@ var _torneoLigaActual = null;
 var _copaFilterRound = 0;
 
 function obtenerCopasPais(pais) {
-    if (pais === 'España') return ['Copa del Rey'];
+    if (pais === 'España') return ['Copa del Rey', 'Supercopa de España'];
     if (pais === 'Inglaterra') return ['FA Cup'];
     if (pais === 'Italia') return ['Coppa Italia'];
     return [];
+}
+
+function generarSupercopa() {
+    var clas = gameState._supercopaClasificados;
+    if (!clas || clas.length < 4) return;
+    var sf1 = { local: clas[0], visitante: clas[3], resultado: null };
+    var sf2 = { local: clas[2], visitante: clas[1], resultado: null };
+    var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+    var seasonStr = m ? m[1] : '2026-27';
+    gameState.supercopa = {
+        rondas: [
+            { nombre: 'Semifinal', orden: 0, partidos: [sf1, sf2], completada: false },
+            { nombre: 'Final', orden: 1, partidos: [], completada: false }
+        ],
+        campeon: null,
+        temporada: seasonStr
+    };
+    gameState._supercopaClasificados = null;
+}
+
+function simularRondaSupercopa(orden) {
+    if (!gameState.supercopa) return;
+    var ronda = gameState.supercopa.rondas[orden];
+    if (!ronda || ronda.completada || ronda.partidos.length === 0) return;
+    var ganadores = [];
+    ronda.partidos.forEach(function(p) {
+        if (p.resultado) {
+            var gan = p.resultado.golesL > p.resultado.golesV ? p.local : p.visitante;
+            ganadores.push(gan);
+            return;
+        }
+        var res = simularPartidoCopa(p.local, p.visitante);
+        p.resultado = res;
+        var ganador = res.golesL > res.golesV ? p.local : p.visitante;
+        ganadores.push(ganador);
+    });
+    ronda.completada = true;
+
+    if (orden === 0) {
+        ronda.partidos.forEach(function(p) {
+            if (p.local === gameState.team || p.visitante === gameState.team) {
+                gameState.budget += 1.5;
+            }
+        });
+    }
+
+    if (orden < gameState.supercopa.rondas.length - 1) {
+        var sigRonda = gameState.supercopa.rondas[orden + 1];
+        for (var i = 0; i < ganadores.length; i += 2) {
+            if (i + 1 < ganadores.length) {
+                sigRonda.partidos.push({ local: ganadores[i], visitante: ganadores[i + 1], resultado: null });
+            }
+        }
+    } else {
+        gameState.supercopa.campeon = ganadores[0] || null;
+        if (gameState.supercopa.campeon) {
+            var partidoFinal = ronda.partidos[0];
+            if (partidoFinal && partidoFinal.resultado) {
+                var perdedor = partidoFinal.resultado.golesL > partidoFinal.resultado.golesV ? partidoFinal.visitante : partidoFinal.local;
+                if (perdedor === gameState.team) gameState.budget += 1.0;
+                if (gameState.supercopa.campeon === gameState.team) gameState.budget += 2.0;
+            }
+            var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+            var seasonStr = m ? m[1] : '2026-27';
+            registrarTitulo(gameState.supercopa.campeon, 'Supercopa de España', seasonStr);
+            enviarMensaje('Real Federación Española', '\ud83c\udfc6 Campe\u00f3n de la Supercopa',
+                '\u00a1' + gameState.supercopa.campeon + ' se proclama campe\u00f3n de la Supercopa de Espa\u00f1a ' + seasonStr + '!');
+        }
+    }
 }
 
 function renderTorneoPaises() {
@@ -4721,6 +4889,41 @@ function runMatchSimulation() {
     commentary.innerHTML += '<p style="color:#94a3b8;">Asistencia: ' + asistencia.toLocaleString() + ' espect. Recaudaci\u00f3n: ' + formatearPresupuesto(recaudacion) + '.</p>';
     document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
 
+    // Simular Supercopa antes del partido de Liga
+    var semanaIdxSC = (gameState.matchday || 1) - 1;
+    if (gameState.supercopa && gameState.calendario && gameState.calendario[semanaIdxSC]) {
+        var partidosSemSC = gameState.calendario[semanaIdxSC].partidos;
+        for (var sci = 0; sci < partidosSemSC.length; sci++) {
+            if (partidosSemSC[sci].competicion === 'Supercopa' && !partidosSemSC[sci].jugado) {
+                var pSC = partidosSemSC[sci];
+                var rSC = pSC.rival;
+                var condSC = pSC.condicion;
+                var localSC = condSC === 'C' ? gameState.team : rSC;
+                var visitSC = condSC === 'C' ? rSC : gameState.team;
+                var resSC = simularPartidoCopa(localSC, visitSC);
+                pSC.jugado = true;
+                pSC.resultado = {
+                    golesFavor: condSC === 'C' ? resSC.golesL : resSC.golesV,
+                    golesContra: condSC === 'C' ? resSC.golesV : resSC.golesL
+                };
+                var rSCIdx = pSC.supercopaRondaIdx !== undefined ? pSC.supercopaRondaIdx : 0;
+                if (gameState.supercopa.rondas[rSCIdx]) {
+                    var rondaSC = gameState.supercopa.rondas[rSCIdx];
+                    for (var sm = 0; sm < rondaSC.partidos.length; sm++) {
+                        var pmSC = rondaSC.partidos[sm];
+                        if ((pmSC.local === gameState.team || pmSC.visitante === gameState.team) && !pmSC.resultado) {
+                            pmSC.resultado = resSC;
+                            break;
+                        }
+                    }
+                    simularRondaSupercopa(rSCIdx);
+                }
+                commentary.innerHTML += '<p style="color:#eab308;">\ud83c\udfc6 Supercopa: ' + localSC + ' ' + resSC.golesL + '-' + resSC.golesV + ' ' + visitSC + '</p>';
+                break;
+            }
+        }
+    }
+
     commentary.style.display = '';
     document.getElementById('halfTimeMenu').style.display = 'none';
     document.getElementById('btnContinueMatch').style.display = 'none';
@@ -5106,6 +5309,21 @@ function nextMatch() {
         }
     }
 
+    // Simular Supercopa donde el usuario no participa
+    if (gameState.supercopa && (gameState.matchday === 19 || gameState.matchday === 20)) {
+        var scIdx = gameState.matchday === 19 ? 0 : 1;
+        var scRonda = gameState.supercopa.rondas[scIdx];
+        if (scRonda && !scRonda.completada) {
+            var usuarioJuegaSC = false;
+            scRonda.partidos.forEach(function(p) {
+                if (p.local === gameState.team || p.visitante === gameState.team) usuarioJuegaSC = true;
+            });
+            if (!usuarioJuegaSC) {
+                simularRondaSupercopa(scIdx);
+            }
+        }
+    }
+
     gameState.matchday = (gameState.matchday || 1) + 1;
 
     if (gameState.patrocinadorActual && gameState.matchday % 4 === 0) {
@@ -5204,6 +5422,7 @@ function obtenerEstadoJuego() {
         cantera: gameState.cantera,
         patrocinadorActual: gameState.patrocinadorActual,
         ofertasPatrocinio: gameState.ofertasPatrocinio,
+        supercopa: gameState.supercopa,
         estiloPresion: gameState.estiloPresion,
         formacion: gameState.formacion,
         objetivoTemporada: gameState.objetivoTemporada,
@@ -5268,6 +5487,7 @@ function cargarPartida(slotId) {
     gameState.cantera = data.cantera || { promesas: [], filial: [], generacionHecha: false };
     gameState.patrocinadorActual = data.patrocinadorActual || null;
     gameState.ofertasPatrocinio = data.ofertasPatrocinio || [];
+    gameState.supercopa = data.supercopa || null;
     gameState.estiloPresion = data.estiloPresion || 'pesada';
     gameState.formacion = data.formacion || '4-4-2 Estándar';
     if (data.objetivoTemporada) {
