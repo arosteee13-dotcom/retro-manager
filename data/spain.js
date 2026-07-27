@@ -7,7 +7,7 @@ Database.register({
             desc: 'Primera División',
             teams: [
                 {
-                    name: 'Real Madrid', budget: '18.0M€', target: 'Ganar la Liga', rating: 89, stadium: 'Santiago Bernabéu', capacity: 81044,
+                    name: 'Real Madrid', manager: 'José Mourinho', managerNation: 'pt', budget: '18.0M€', target: 'Ganar la Liga', rating: 89, stadium: 'Santiago Bernabéu', capacity: 81044,
                     squad: [
                         { id: 1, pos: 'PO', name: 'Thibaut Courtois', dorsal: 1, fullName: 'Thibaut Courtois', nationality: 'be', age: 34, height: 199, rating: 82, stamina: '100%', val: '11.02M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 2, pos: 'PO', name: 'Andriy Lunin', dorsal: 13, fullName: 'Andriy Lunin', nationality: 'ua', age: 27, height: 191, rating: 59, stamina: '100%', val: '9.36M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
@@ -34,11 +34,12 @@ Database.register({
                         { id: 23, pos: 'DC', name: 'Endrick', dorsal: 17, fullName: 'Endrick', nationality: 'br', age: 20, height: 172, rating: 66, stamina: '100%', val: '39.27M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 24, pos: 'EI', name: 'F. Mastantuono', dorsal: 20, fullName: 'Franco Mastantuono', nationality: 'ar', age: 18, height: 178, rating: 66, stamina: '100%', val: '44.91M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 25, pos: 'EI', name: 'Brahim Díaz', dorsal: 21, fullName: 'Brahim Díaz', nationality: 'ma', age: 26, height: 170, rating: 72, stamina: '100%', val: '36.68M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
-                        { id: 26, pos: 'DC', name: 'Gonzalo García', dorsal: 24, fullName: 'Gonzalo García', nationality: 'es', age: 22, height: 182, rating: 69, stamina: '100%', val: '26.69M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } }
+                        { id: 26, pos: 'DC', name: 'Gonzalo García', dorsal: 24, fullName: 'Gonzalo García', nationality: 'es', age: 22, height: 182, rating: 69, stamina: '100%', val: '26.69M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
+                        { id: 27, pos: 'ED', name: 'Y. Diomande', dorsal: 27, fullName: 'Yan Diomande', nationality: 'ci', age: 19, height: 180, rating: 64, stamina: '100%', val: '32.75M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } }
                     ]
                 },
                 {
-                    name: 'FC Barcelona', budget: '15.0M€', target: 'Ganar la Liga', rating: 87, stadium: 'Spotify Camp Nou', capacity: 99354,
+                    name: 'FC Barcelona', manager: 'Hansi Flick', managerNation: 'de', budget: '15.0M€', target: 'Ganar la Liga', rating: 87, stadium: 'Spotify Camp Nou', capacity: 99354,
                     squad: [
                         { id: 1, pos: 'PO', name: 'M. Ter Stegen', dorsal: 1, fullName: 'Marc-André ter Stegen', nationality: 'de', age: 34, height: 187, rating: 78, stamina: '100%', val: '5.11M€', pj: 35, gol: 0, asi: 1, ta: 2, tr: 0, lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 2, pos: 'PO', name: 'Joan García', dorsal: 13, fullName: 'Joan García Pons', nationality: 'es', age: 25, height: 194, rating: 72, stamina: '100%', val: '25.62M€', pj: 8, gol: 0, asi: 0, ta: 0, tr: 0, lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
@@ -73,7 +74,7 @@ Database.register({
                     ]
                 },
                 {
-                    name: 'Atlético de Madrid', budget: '8.0M€', target: 'Entrar en Champions', rating: 84, stadium: 'Riyadh Air Metropolitano', capacity: 70460,
+                    name: 'Atlético de Madrid', manager: 'Diego Simeone', managerNation: 'ar', budget: '8.0M€', target: 'Entrar en Champions', rating: 84, stadium: 'Riyadh Air Metropolitano', capacity: 70460,
                     squad: [
                         { id: 1, pos: 'PO', name: 'Jan Oblak', dorsal: 13, fullName: 'Jan Oblak', nationality: 'si', age: 33, height: 188, rating: 88, stamina: '100%', val: '20.45M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 2, pos: 'PO', name: 'J. Musso', dorsal: 1, fullName: 'Juan Musso', nationality: 'ar', age: 32, height: 193, rating: 65, stamina: '100%', val: '3.06M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
@@ -105,7 +106,7 @@ Database.register({
                 },
                 { name: 'Real Sociedad', budget: '5.0M€', target: 'Entrar en Champions', rating: 81, stadium: 'Anoeta', capacity: 40000, squad: [] },
                 {
-                    name: 'Athletic Club', budget: '4.5M€', target: 'Puestos Europeos', rating: 80, stadium: 'San Mamés', capacity: 53332,
+                    name: 'Athletic Club', manager: 'Edin Terzić', managerNation: 'de', budget: '4.5M€', target: 'Puestos Europeos', rating: 80, stadium: 'San Mamés', capacity: 53332,
                     squad: [
                         { id: 1, pos: 'PO', name: 'Unai Simón', dorsal: 1, fullName: 'Unai Simón', nationality: 'es', age: 29, height: 190, rating: 81, stamina: '100%', val: '39.25M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 2, pos: 'PO', name: 'J. Agirrezabala', dorsal: 13, fullName: 'Julen Agirrezabala', nationality: 'es', age: 25, height: 187, rating: 75, stamina: '100%', val: '10.19M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
@@ -145,7 +146,7 @@ Database.register({
                 { name: 'Sevilla', budget: '3.5M€', target: 'Puestos Europeos', rating: 78, stadium: 'Ramón Sánchez-Pizjuán', capacity: 43883, squad: [] },
                 { name: 'Valencia', budget: '3.0M€', target: 'Puestos Europeos', rating: 77, stadium: 'Mestalla', capacity: 49430, squad: [] },
                 {
-                    name: 'Celta', budget: '2.5M€', target: 'Media tabla', rating: 75, stadium: 'Abanca Balaídos', capacity: 24870,
+                    name: 'Celta', manager: 'Claudio Giráldez', managerNation: 'es', budget: '2.5M€', target: 'Media tabla', rating: 75, stadium: 'Abanca Balaídos', capacity: 24870,
                     squad: [
                         { id: 1, pos: 'PO', name: 'Andrei Radu', dorsal: 1, fullName: 'Andrei Radu', nationality: 'ro', age: 29, height: 188, rating: 74, stamina: '100%', val: '9.32M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 2, pos: 'PO', name: 'Iván Villar', dorsal: 13, fullName: 'Iván Villar', nationality: 'es', age: 29, height: 183, rating: 47, stamina: '100%', val: '1.16M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
@@ -181,7 +182,7 @@ Database.register({
                 { name: 'Espanyol', budget: '1.5M€', target: 'Media tabla', rating: 71, stadium: 'RCDE Stadium', capacity: 40500, squad: [] },
                 { name: 'Málaga', budget: '1.2M€', target: 'Media tabla', rating: 70, stadium: 'Estadio La Rosaleda', capacity: 30044, squad: [] },
                 {
-                    name: 'Deportivo Alavés', budget: '1.2M€', target: 'Evitar descenso', rating: 69, stadium: 'Mendizorroza', capacity: 19940,
+                    name: 'Deportivo Alavés', manager: 'Quique Sánchez Flores', managerNation: 'es', budget: '1.2M€', target: 'Evitar descenso', rating: 69, stadium: 'Mendizorroza', capacity: 19940,
                     squad: [
                         { id: 1, pos: 'PO', name: 'Antonio Sivera', dorsal: 1, fullName: 'Antonio Sivera', nationality: 'es', age: 29, height: 185, rating: 76, stamina: '100%', val: '7.22M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },
                         { id: 2, pos: 'PO', name: 'Jesús Owono', dorsal: 13, fullName: 'Jesús Owono', nationality: 'gq', age: 25, height: 186, rating: 59, stamina: '100%', val: '1.22M€', lesionSemanas: 0, sancionSemanas: 0, tarjetasAmarillasAcum: 0, statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 } },

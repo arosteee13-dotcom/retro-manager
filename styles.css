@@ -1019,7 +1019,124 @@ body {
     display: inline-block;
 }
 
-.mer-subtab { display:flex; flex-direction:column; flex:1; min-height:0; }
+.inbox-layout {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+}
+.inbox-list-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 35%;
+    min-width: 200px;
+    background: #0f141c;
+    border: 1px solid #222d3d;
+    border-radius: 4px;
+    padding: 4px;
+}
+.inbox-reader-panel {
+    flex: 1;
+    background: #0f141c;
+    border: 1px solid #222d3d;
+    border-radius: 4px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+.inbox-list-item {
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    margin-bottom: 2px;
+}
+.inbox-list-item:hover {
+    background: #1a2a40;
+}
+.inbox-list-item.active {
+    background: #1a2a40;
+    border-color: #38bdf8;
+}
+.inbox-list-item.unread {
+    border-left-color: #38bdf8;
+}
+.inbox-list-remitente {
+    font-size: 11px;
+    color: #94a3b8;
+}
+.inbox-list-asunto {
+    font-size: 12px;
+    color: #e2e8f0;
+    font-weight: bold;
+}
+.inbox-list-preview {
+    font-size: 10px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inbox-list-fecha {
+    font-size: 9px;
+    color: #64748b;
+}
+.inbox-reader-header {
+    border-bottom: 1px solid #263342;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+.inbox-reader-remitente {
+    font-size: 12px;
+    color: #94a3b8;
+}
+.inbox-reader-asunto {
+    font-size: 16px;
+    color: #f1f5f9;
+    font-weight: bold;
+    margin: 4px 0;
+}
+.inbox-reader-fecha {
+    font-size: 10px;
+    color: #64748b;
+}
+.inbox-reader-texto {
+    font-size: 13px;
+    color: #e2e8f0;
+    line-height: 1.4;
+    margin: 12px 0;
+}
+.inbox-reader-acciones {
+    display: flex;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.fin-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.fin-label {
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.fin-val {
+    font-size: 22px;
+    font-weight: bold;
+}
 
 .match-nota-row {
     display: flex;

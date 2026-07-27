@@ -21,6 +21,10 @@ const gameState = {
     mensajes: [],
     ultimoIdMensaje: 0,
     historialTraspasos: [],
+    cedidosFuera: [],
+    historialClub: {},
+    palmaresClub: {},
+    objetivoTemporada: 'Evitar el descenso',
     estiloPresion: 'pesada',
     formacion: '4-4-2 Estándar',
     capitanId: null
@@ -84,6 +88,12 @@ function enviarMensaje(remitente, asunto, texto, acciones) {
         timestamp: gameState.matchday || 1,
         acciones: acciones || null
     });
+    if (acciones) {
+        acciones.forEach(function(act) {
+            act.fn = act.fn.replace(/"([^"]*)"/g, "'$1'");
+        });
+    }
+    actualizarBadges();
 }
 
 function formatearPresupuesto(cantidad) {
@@ -97,6 +107,8 @@ function marcarMensajeLeido(id) {
         if (gameState.mensajes[i].id === id) { gameState.mensajes[i].leido = true; break; }
     }
     renderInbox();
+    var iv = document.getElementById('inboxLista');
+    if (iv) renderInboxView();
 }
 
 function renderInbox() {
@@ -126,8 +138,132 @@ function renderInbox() {
         html = '<div style="color:#64748b;font-size:14px;text-align:center;padding:10px;">Bandeja vacía. Los mensajes aparecerán aquí.</div>';
     }
     container.innerHTML = html;
-    var badge = document.getElementById('inboxBadge');
-    if (badge) badge.innerText = noLeidos > 0 ? noLeidos : '';
+    actualizarBadges(noLeidos);
+}
+
+var _inboxFiltro = 'todos';
+
+function actualizarBadges(noLeidos) {
+    if (noLeidos === undefined) {
+        noLeidos = 0;
+        for (var i = 0; i < gameState.mensajes.length; i++) {
+            if (!gameState.mensajes[i].leido) noLeidos++;
+        }
+    }
+    var b2 = document.getElementById('inboxUnreadBadge');
+    if (b2) b2.innerText = noLeidos > 0 ? noLeidos : '';
+}
+
+function filtrarInbox(btn, filtro) {
+    _inboxFiltro = filtro;
+    document.querySelectorAll('#tab-inbox .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    renderInboxView();
+}
+
+function ordenarPlantilla(squad) {
+    var ordenPos = { PO:0, POR:0, DFC:1, LI:1, LD:1, CAI:1, CAD:1, MCD:2, MC:2, MCO:2, MI:2, MD:2, EI:3, ED:3, DC:3 };
+    squad.sort(function(a, b) {
+        var oA = ordenPos[a.pos] !== undefined ? ordenPos[a.pos] : 99;
+        var oB = ordenPos[b.pos] !== undefined ? ordenPos[b.pos] : 99;
+        if (oA !== oB) return oA - oB;
+        return (b.rating || 0) - (a.rating || 0);
+    });
+    return squad;
+}
+
+function renderFinanzasView() {
+    document.getElementById('finPresupuesto').innerText = formatearPresupuesto(gameState.budget);
+    var valorTotal = 0;
+    gameState.squad.forEach(function(p) {
+        var valStr = (p.val || '0M€').replace('€', '').replace('M', '').replace('K', '');
+        var valNum = parseFloat(valStr);
+        if ((p.val || '').indexOf('K') !== -1) valNum = valNum / 1000;
+        valorTotal += valNum;
+    });
+    document.getElementById('finValorPlantilla').innerText = valorTotal >= 1000 ? (valorTotal/1000).toFixed(1) + 'B€' : valorTotal.toFixed(1) + 'M€';
+    var ingresos = 0, gastos = 0;
+    (gameState.historialTraspasos || []).forEach(function(t) {
+        if (t.tipo === 'venta' || t.tipo === 'cesion') ingresos += t.precio;
+        if (t.tipo === 'compra') gastos += t.precio;
+    });
+    var neto = ingresos - gastos;
+    var netoEl = document.getElementById('finBalance');
+    netoEl.innerText = (neto >= 0 ? '+' : '') + neto.toFixed(1) + 'M€';
+    netoEl.style.color = neto >= 0 ? '#22c55e' : '#ef4444';
+    var lista = document.getElementById('finMovimientos');
+    if (!lista) return;
+    var h = gameState.historialTraspasos || [];
+    if (h.length === 0) {
+        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:12px;">Sin movimientos económicos.</div>';
+        return;
+    }
+    var html = '';
+    h.forEach(function(t) {
+        var icono = t.tipo === 'venta' ? '💰' : t.tipo === 'cesion' ? '📄' : t.tipo === 'compra' ? '💵' : '🔄';
+        var color = t.tipo === 'venta' || t.tipo === 'cesion' ? '#22c55e' : '#ef4444';
+        var signo = (t.tipo === 'venta' || t.tipo === 'cesion') ? '+' : '-';
+        html += '<div class="tactic-list-item" style="cursor:default;padding:3px 6px;">' +
+            '<span style="font-size:10px;color:#64748b;min-width:36px;">' + t.fecha + '</span>' +
+            '<span style="font-size:12px;">' + icono + ' ' + t.jugador + '</span>' +
+            '<span style="font-size:10px;color:#94a3b8;flex:1;text-align:right;">' + t.desde + ' → ' + t.para + '</span>' +
+            '<span style="font-size:10px;color:' + color + ';min-width:44px;text-align:right;">' + signo + t.precio.toFixed(1) + 'M€</span></div>';
+    });
+    lista.innerHTML = html;
+}
+
+function renderInboxView() {
+    var lista = document.getElementById('inboxLista');
+    if (!lista) return;
+    var noLeidos = 0;
+    var html = '';
+    for (var i = 0; i < gameState.mensajes.length; i++) {
+        var msg = gameState.mensajes[i];
+        if (!msg.leido) noLeidos++;
+        if (_inboxFiltro === 'noleidos' && msg.leido) continue;
+        var clase = 'inbox-list-item';
+        if (!msg.leido) clase += ' unread';
+        if (msg._selected) clase += ' active';
+        var preview = msg.texto.replace(/<[^>]+>/g, '').substring(0, 60);
+        html += '<div class="' + clase + '" onclick="seleccionarMensaje(' + msg.id + ')">' +
+            '<div style="display:flex;justify-content:space-between;">' +
+            '<span class="inbox-list-remitente">' + msg.remitente + '</span>' +
+            '<span class="inbox-list-fecha">J' + msg.timestamp + '</span></div>' +
+            '<div class="inbox-list-asunto">' + msg.asunto + '</div>' +
+            '<div class="inbox-list-preview">' + preview + '...</div></div>';
+    }
+    if (html === '') html = '<div style="color:#64748b;text-align:center;padding:20px;font-size:12px;">No hay mensajes' + (_inboxFiltro === 'noleidos' ? ' sin leer' : '') + '.</div>';
+    lista.innerHTML = html;
+    actualizarBadges(noLeidos);
+}
+
+function seleccionarMensaje(id) {
+    for (var i = 0; i < gameState.mensajes.length; i++) {
+        gameState.mensajes[i]._selected = (gameState.mensajes[i].id === id);
+        if (gameState.mensajes[i].id === id) {
+            gameState.mensajes[i].leido = true;
+        }
+    }
+    marcarMensajeLeido(id);
+    renderInboxView();
+    var msg = null;
+    for (var i = 0; i < gameState.mensajes.length; i++) {
+        if (gameState.mensajes[i].id === id) { msg = gameState.mensajes[i]; break; }
+    }
+    var content = document.getElementById('inboxReaderContent');
+    if (!msg) { content.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:13px;">Selecciona un mensaje para leerlo</div>'; return; }
+    var html = '<div class="inbox-reader-header">' +
+        '<div class="inbox-reader-remitente">' + msg.remitente + ' <span style="color:#64748b;">· J' + msg.timestamp + '</span></div>' +
+        '<div class="inbox-reader-asunto">' + msg.asunto + '</div></div>' +
+        '<div class="inbox-reader-texto">' + msg.texto + '</div>';
+    if (msg.acciones) {
+        html += '<div class="inbox-reader-acciones">';
+        for (var a = 0; a < msg.acciones.length; a++) {
+            html += '<button class="btn-retro green btn-sm" onclick="' + msg.acciones[a].fn + '">' + msg.acciones[a].texto + '</button>';
+        }
+        html += '</div>';
+    }
+    content.innerHTML = html;
 }
 
 const screenTitles = {
@@ -263,6 +399,7 @@ function selectTeam(element, teamName, budget, target, rating, stadium, capacity
     document.getElementById('detailTarget').innerText = target;
     document.getElementById('detailRating').innerText = displayRating + ' / 99';
     document.getElementById('detailStadium').innerText = stadium;
+    gameState.objetivoTemporada = target || 'Evitar el descenso';
 }
 
 function populateCountries() {
@@ -403,6 +540,13 @@ function switchGameTab(btn, tabId) {
         layout.style.gridTemplateColumns = '140px 1fr';
     }
 
+    if (tabId === 'tab-inbox') {
+        renderInboxView();
+    }
+    if (tabId === 'tab-finanzas') {
+        renderFinanzasView();
+    }
+
     if (tabId === 'tab-dorsales') {
         renderDorsalManager();
     }
@@ -442,6 +586,7 @@ function switchSquadSubTab(btn, tabId) {
 function renderSquadStats() {
     var tbody = document.getElementById('squadStatsBody');
     tbody.innerHTML = '';
+    ordenarPlantilla(gameState.squad);
     gameState.squad.forEach(function (p) {
         var st = p.statsTemporada || {};
         var tr = document.createElement('tr');
@@ -463,7 +608,7 @@ function renderSquadStats() {
 function renderSquadTable() {
     const tbody = document.getElementById('squadTableBody');
     tbody.innerHTML = '';
-
+    ordenarPlantilla(gameState.squad);
     gameState.squad.forEach(function (p) {
         const tr = document.createElement('tr');
         tr.innerHTML =
@@ -609,20 +754,223 @@ function generarPlantillaSimulada(nombreEquipo, pais, ratingEquipo) {
     return squad;
 }
 
-function generarPalmaresClub(rating) {
-    var ligas = rating >= 85 ? 3 + Math.floor(Math.random() * 4) : rating >= 75 ? 1 + Math.floor(Math.random() * 3) : Math.floor(Math.random() * 2);
-    var copas = rating >= 80 ? 2 + Math.floor(Math.random() * 3) : rating >= 70 ? 1 + Math.floor(Math.random() * 2) : Math.floor(Math.random());
-    var champions = rating >= 88 ? 1 + Math.floor(Math.random() * 2) : rating >= 82 ? Math.floor(Math.random() * 2) : 0;
-    return { ligas: ligas, copas: copas, champions: champions };
-}
-function generarHistorialPosiciones(rating) {
-    var temp = [];
-    var base = Math.max(1, 20 - Math.round(rating / 4.5));
-    for (var i = 0; i < 5; i++) {
-        var v = Math.floor(Math.random() * 5) - 2;
-        temp.push(Math.max(1, Math.min(20, base + v)));
+var _palmaresReales = {
+    'Athletic Club': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 8, anios: ['1983-84','1982-83','1955-56','1942-43','1935-36','1933-34','1930-31','1929-30'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 24, anios: ['2023-24','1983-84','1972-73','1968-69','1957-58','1955-56','1954-55','1949-50','1944-45','1943-44','1942-43','1932-33','1931-32','1930-31','1929-30','1922-23','1920-21','1915-16','1914-15','1913-14','1910-11','1909-10','1903-04'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2021','2015','1984'] }
+    ],
+    'Atlético de Madrid': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 11, anios: ['2020-21','2013-14','1995-96','1976-77','1972-73','1969-70','1965-66','1950-51','1949-50','1940-41','1939-40'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 10, anios: ['2012-13','1995-96','1991-92','1990-91','1984-85','1975-76','1971-72','1964-65','1960-61','1959-60'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2014','1985'] },
+        { nombre: 'Europa League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/117.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2017-18','2011-12','2009-10'] },
+        { nombre: 'Supercopa de Europa', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/133.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2018','2012','2010'] },
+        { nombre: 'Copa Intercontinental', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1747.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1974'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2001-02'] }
+    ],
+    'RC Celta': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 4, anios: ['1991-92','1981-82','1935-36','1934-35'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1980-81'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1930-31'] }
+    ],
+    'Deportivo Alavés': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 4, anios: ['2015-16','1997-98','1953-54','1929-30'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 4, anios: ['2012-13','1994-95','1993-94','1992-93'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 6, anios: ['1989-90','1973-74','1967-68','1964-65','1960-61','1940-41'] }
+    ],
+    'Elche': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2012-13','1958-59'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 7, anios: ['1957-58','1956-57','1954-55','1947-48','1944-45','1943-44','1940-41'] }
+    ],
+    'Espanyol': [
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 4, anios: ['2005-06','1999-00','1939-40','1928-29'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2020-21','1993-94'] }
+    ],
+    'FC Barcelona': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 29, anios: ['2025-26','2024-25','2022-23','2018-19','2017-18','2015-16','2014-15','2012-13','2010-11','2009-10','2008-09','2005-06','2004-05','1998-99','1997-98','1993-94','1992-93','1991-92','1990-91','1984-85','1973-74','1959-60','1958-59','1952-53','1951-52','1948-49','1947-48','1944-45','1929'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 32, anios: ['2024-25','2020-21','2017-18','2016-17','2015-16','2014-15','2011-12','2008-09','1997-98','1996-97','1989-90','1987-88','1982-83','1980-81','1977-78','1970-71','1967-68','1962-63','1958-59','1956-57','1952-53','1951-52','1950-51','1941-42','1927-28','1925-26','1924-25','1921-22','1919-20','1912-13','1911-12','1909-10'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 16, anios: ['2026','2025','2023','2018','2016','2013','2011','2010','2009','2006','2005','1996','1994','1992','1991','1983'] },
+        { nombre: 'Champions League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/107.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 5, anios: ['2014-15','2010-11','2008-09','2005-06','1991-92'] },
+        { nombre: 'Supercopa de Europa', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/133.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 5, anios: ['2015','2011','2009','1997','1992'] },
+        { nombre: 'Mundial de Clubes', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/137.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2016','2012','2010'] }
+    ],
+    'Getafe': [
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1998-99'] }
+    ],
+    'Levante': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 4, anios: ['2024-25','2016-17','2003-04','1939-40'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 5, anios: ['1998-99','1995-96','1994-95','1988-89','1978-79'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 7, anios: ['1975-76','1972-73','1955-56','1953-54','1945-46','1943-44','1931-32'] }
+    ],
+    'Málaga': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1998-99'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1997-98'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1994-95'] }
+    ],
+    'Osasuna': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 5, anios: ['2018-19','1960-61','1955-56','1952-53','1934-35'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 6, anios: ['1976-77','1974-75','1968-69','1948-49','1947-48','1931-32'] }
+    ],
+    'Racing': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2025-26','1959-60','1949-50'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2021-22','1990-91'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['1969-70','1947-48','1943-44'] }
+    ],
+    'Rayo Vallecano': [
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2017-18'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2007-08','1984-85'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['1964-65','1955-56'] }
+    ],
+    'RC Deportivo': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1999-00'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2001-02','1994-95'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2002','2000','1995'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 6, anios: ['2011-12','1967-68','1965-66','1963-64','1961-62','1939-40'] },
+        { nombre: 'Primera Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2468.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2023-24'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1974-75'] }
+    ],
+    'Real Betis': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1934-35'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2021-22','2004-05','1976-77'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 7, anios: ['2014-15','2010-11','1973-74','1970-71','1957-58','1941-42','1931-32'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1953-54'] }
+    ],
+    'Real Madrid': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 36, anios: ['2023-24','2021-22','2019-20','2016-17','2011-12','2007-08','2006-07','2002-03','2000-01','1996-97','1994-95','1989-90','1988-89','1987-88','1986-87','1985-86','1979-80','1978-79','1977-78','1975-76','1974-75','1971-72','1968-69','1967-68','1966-67','1964-65','1963-64','1962-63','1961-62','1960-61','1957-58','1956-57','1954-55','1953-54','1932-33','1931-32'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 20, anios: ['2022-23','2013-14','2010-11','1992-93','1988-89','1981-82','1979-80','1974-75','1973-74','1969-70','1961-62','1946-47','1945-46','1935-36','1933-34','1916-17','1907-08','1906-07'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 13, anios: ['2024','2022','2020','2017','2012','2008','2003','2001','1997','1993','1990','1988'] },
+        { nombre: 'Champions League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/107.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 15, anios: ['2023-24','2021-22','2017-18','2016-17','2015-16','2013-14','2001-02','1999-00','1997-98','1965-66','1959-60','1958-59','1957-58','1956-57','1955-56'] },
+        { nombre: 'Supercopa de Europa', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/133.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 6, anios: ['2024','2022','2017','2016','2014','2002'] },
+        { nombre: 'Europa League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/117.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['1985-86','1984-85'] },
+        { nombre: 'Mundial de Clubes', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/137.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 5, anios: ['2023','2019','2018','2017','2015'] },
+        { nombre: 'Copa Intercontinental', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1747.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2002','1998','1960'] },
+        { nombre: 'Copa Intercontinental de la FIFA', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2976.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2025'] }
+    ],
+    'Real Sociedad': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['1981-82','1980-81'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 3, anios: ['2025-26','2019-20','1986-87'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1982'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 6, anios: ['2009-10','1966-67','1948-49','1942-43','1940-41','1939-40'] }
+    ],
+    'Sevilla': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1945-46'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 5, anios: ['2009-10','2006-07','1947-48','1938-39','1934-35'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2007'] },
+        { nombre: 'Europa League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/117.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 7, anios: ['2022-23','2019-20','2015-16','2014-15','2013-14','2006-07','2005-06'] },
+        { nombre: 'Supercopa de Europa', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/133.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2006'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 4, anios: ['2000-01','1968-69','1933-34','1928-29'] }
+    ],
+    'Valencia': [
+        { nombre: 'Primera División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/1.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 6, anios: ['2003-04','2001-02','1970-71','1946-47','1943-44','1941-42'] },
+        { nombre: 'Copa del Rey', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/129.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 8, anios: ['2018-19','2007-08','1998-99','1978-79','1966-67','1953-54','1948-49','1940-41'] },
+        { nombre: 'Supercopa de España', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/132.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1999'] },
+        { nombre: 'Europa League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/117.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2003-04'] },
+        { nombre: 'Supercopa de Europa', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/133.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['2004','1980'] },
+        { nombre: 'Segunda División', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 2, anios: ['1986-87','1930-31'] }
+    ],
+    'Villarreal': [
+        { nombre: 'Europa League', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/117.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['2020-21'] },
+        { nombre: 'Segunda Federación', icono: '<img src="https://cdn.resfu.com/img_data/competiciones/copa/2469.png?size=120x&lossy=1" style="height:28px;width:auto;">', count: 1, anios: ['1969-70'] }
+    ]
+};
+
+function inicializarPalmaresClub() {
+    if (Object.keys(gameState.palmaresClub).length > 0) return;
+    for (var team in _palmaresReales) {
+        gameState.palmaresClub[team] = JSON.parse(JSON.stringify(_palmaresReales[team]));
     }
-    return temp;
+}
+
+function obtenerIconoPorTipo(tipo) {
+    var base = 'https://cdn.resfu.com/img_data/competiciones/copa/';
+    var ids = {
+        'Primera División': '1', 'Copa del Rey': '129', 'Supercopa de España': '132',
+        'Champions League': '107', 'Europa League': '117', 'Supercopa de Europa': '133',
+        'Mundial de Clubes': '137', 'Copa Intercontinental': '1747',
+        'Copa Intercontinental de la FIFA': '2976', 'Segunda División': '2',
+        'Primera Federación': '2468', 'Segunda Federación': '2469'
+    };
+    return '<img src="' + base + (ids[tipo] || '1') + '.png?size=120x&lossy=1" style="height:28px;width:auto;">';
+}
+
+function generarPalmaresSimulado(rating) {
+    var ahora = new Date().getFullYear();
+    function generarAnios(count, min, max) {
+        var anios = [];
+        for (var i = 0; i < count; i++) anios.push(max - Math.floor(Math.random() * (max - min)));
+        anios.sort(function(a, b) { return b - a; });
+        return anios;
+    }
+    var trofeos = [];
+    var ligasCount = rating >= 85 ? 3 + Math.floor(Math.random() * 4) : rating >= 75 ? 1 + Math.floor(Math.random() * 3) : Math.floor(Math.random() * 2);
+    if (ligasCount > 0) trofeos.push({ nombre: 'Primera División', icono: obtenerIconoPorTipo('Primera División'), count: ligasCount, anios: generarAnios(ligasCount, 1950, ahora - 1) });
+    var copasCount = rating >= 80 ? 2 + Math.floor(Math.random() * 3) : rating >= 70 ? 1 + Math.floor(Math.random() * 2) : Math.floor(Math.random());
+    if (copasCount > 0) trofeos.push({ nombre: 'Copa del Rey', icono: obtenerIconoPorTipo('Copa del Rey'), count: copasCount, anios: generarAnios(copasCount, 1950, ahora - 1) });
+    var superCount = rating >= 88 ? 1 + Math.floor(Math.random() * 2) : rating >= 82 ? Math.floor(Math.random() * 2) : 0;
+    if (superCount > 0) trofeos.push({ nombre: 'Supercopa de España', icono: obtenerIconoPorTipo('Supercopa de España'), count: superCount, anios: generarAnios(superCount, 1955, ahora - 1) });
+    return trofeos;
+}
+
+function obtenerPalmaresClub(nombreEquipo, rating) {
+    inicializarPalmaresClub();
+    if (!gameState.palmaresClub[nombreEquipo]) {
+        gameState.palmaresClub[nombreEquipo] = generarPalmaresSimulado(rating);
+    }
+    return gameState.palmaresClub[nombreEquipo];
+}
+
+function registrarTitulo(teamId, tipoTrofeo, temporada) {
+    inicializarPalmaresClub();
+    if (!gameState.palmaresClub[teamId]) gameState.palmaresClub[teamId] = [];
+    var trofeo = null;
+    for (var i = 0; i < gameState.palmaresClub[teamId].length; i++) {
+        if (gameState.palmaresClub[teamId][i].nombre === tipoTrofeo) {
+            trofeo = gameState.palmaresClub[teamId][i]; break;
+        }
+    }
+    if (trofeo) {
+        trofeo.count++;
+        trofeo.anios.unshift(temporada);
+        trofeo._nuevas = trofeo._nuevas || [];
+        trofeo._nuevas.push(temporada);
+    } else {
+        gameState.palmaresClub[teamId].push({
+            nombre: tipoTrofeo,
+            icono: obtenerIconoPorTipo(tipoTrofeo),
+            count: 1,
+            anios: [temporada],
+            _nuevas: [temporada]
+        });
+    }
+}
+
+function mostrarAniosTrofeo(nombre) {
+    var palmares = window._palmaresActual || [];
+    var data = null;
+    for (var i = 0; i < palmares.length; i++) {
+        if (palmares[i].nombre === nombre) { data = palmares[i]; break; }
+    }
+    if (!data || !data.anios || data.anios.length === 0) return;
+    var el = document.getElementById('trofeoDetail');
+    var content = document.getElementById('trofeoDetailContent');
+    if (!el || !content) return;
+    if (el.style.display === 'block' && el._nombre === nombre) {
+        el.style.display = 'none';
+        return;
+    }
+    content.innerHTML = '<div style="font-size:13px;font-weight:bold;color:#38bdf8;margin-bottom:4px;">' + data.icono + ' ' + data.nombre + '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
+        data.anios.map(function(a) {
+            var esNueva = data._nuevas && data._nuevas.indexOf(a) !== -1;
+            var chipStyle = esNueva
+                ? 'background:#1a2a40;border:1px solid #38bdf8;border-radius:4px;padding:2px 8px;font-size:13px;color:#38bdf8;font-weight:bold;'
+                : 'background:#1e293b;border:1px solid #334155;border-radius:4px;padding:2px 8px;font-size:13px;color:#e2e8f0;';
+            return '<span style="' + chipStyle + '">' + a + '</span>';
+        }).join('') +
+        '</div>';
+    el.style.display = 'block';
+    el._nombre = nombre;
 }
 
 function abrirPlantillaRival(nombreEquipo) {
@@ -632,7 +980,6 @@ function abrirPlantillaRival(nombreEquipo) {
         if (equiposDB[i].name === nombreEquipo) { equipoData = equiposDB[i]; break; }
     }
 
-    document.getElementById('rivalModalIcon').textContent = '🏟️';
     document.getElementById('rivalModalTitle').innerText = nombreEquipo.toUpperCase();
 
     var tabla = [];
@@ -656,26 +1003,81 @@ function abrirPlantillaRival(nombreEquipo) {
     // GENERAL
     var genHtml = '';
     if (equipoData) {
-        genHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;color:#e2e8f0;">' +
-            '<div class="stat-row"><span>Estadio</span><span class="stat-val">' + (equipoData.stadium || '—') + '</span></div>' +
-            '<div class="stat-row"><span>Capacidad</span><span class="stat-val">' + ((equipoData.capacity || 0).toLocaleString()) + '</span></div>' +
-            '<div class="stat-row"><span>Presupuesto</span><span class="stat-val" style="color:#facc15;">' + (equipoData.budget || '—') + '</span></div>' +
-            '<div class="stat-row"><span>Objetivo</span><span class="stat-val" style="color:#38bdf8;">' + (equipoData.target || '—') + '</span></div>' +
-            '</div>';
+        var valorTotal = 0;
+        squad.forEach(function(p) {
+            var valStr = (p.val || '0M€').replace('€', '').replace('M', '').replace('K', '');
+            var valNum = parseFloat(valStr);
+            if ((p.val || '').indexOf('K') !== -1) valNum = valNum / 1000;
+            valorTotal += valNum;
+        });
+        var valorFormateado = valorTotal >= 1000 ? (valorTotal / 1000).toFixed(1) + 'B€' : valorTotal.toFixed(1) + 'M€';
+
+        var apellidos = _nombresPool[gameState.country] || _nombresPool['España'];
+        var managerName = (equipoData && equipoData.manager)
+            ? equipoData.manager + (equipoData.managerNation ? ' ' + flagEmoji(equipoData.managerNation) : '')
+            : apellidos[Math.floor(Math.random() * apellidos.length)];
+
+        var formaHtml = '';
+        if (gameState.fixture) {
+            var ultimos = [];
+            for (var f = 0; f < gameState.fixture.length; f++) {
+                var jornada = gameState.fixture[f];
+                if (!jornada || !jornada.partidos) continue;
+                for (var m = 0; m < jornada.partidos.length; m++) {
+                    var p = jornada.partidos[m];
+                    if (!p.jugado || !p.resultado) continue;
+                    if (p.local === nombreEquipo || p.visitante === nombreEquipo) {
+                        var gf = p.local === nombreEquipo ? p.resultado.golesFavor : p.resultado.golesContra;
+                        var gc = p.local === nombreEquipo ? p.resultado.golesContra : p.resultado.golesFavor;
+                        ultimos.push(gf > gc ? 'V' : gf === gc ? 'E' : 'D');
+                    }
+                }
+            }
+            var recientes = ultimos.slice(-5);
+            var colores = { V: '#22c55e', E: '#eab308', D: '#ef4444' };
+            recientes.forEach(function(r) {
+                formaHtml += '<span style="display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:4px;background:#1e293b;border:1px solid ' + colores[r] + ';color:' + colores[r] + ';font-size:12px;font-weight:bold;">' + r + '</span>';
+            });
+        }
+
+        var calc = calcularRatingEquipo(squad);
+        genHtml =
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
+            '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;">' +
+            '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #1e293b;padding-bottom:4px;"><i class="fa-solid fa-building"></i> DATOS DEL CLUB</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+            '<div><span style="font-size:10px;color:#64748b;text-transform:uppercase;">ESTADIO</span><br><span style="font-size:14px;color:#f8fafc;font-weight:bold;">' + (equipoData.stadium || '—') + '</span></div>' +
+            '<div><span style="font-size:10px;color:#64748b;text-transform:uppercase;">CAPACIDAD</span><br><span style="font-size:14px;color:#f8fafc;font-weight:bold;">' + ((equipoData.capacity || 0).toLocaleString()) + ' esp.</span></div>' +
+            '<div><span style="font-size:10px;color:#64748b;text-transform:uppercase;">ENTRENADOR</span><br><span style="font-size:14px;color:#f8fafc;font-weight:bold;">' + managerName + '</span></div>' +
+            '</div></div>' +
+            '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;">' +
+            '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #1e293b;padding-bottom:4px;"><i class="fa-solid fa-briefcase"></i> FINANZAS Y OBJETIVO</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+            '<div><span style="font-size:10px;color:#64748b;text-transform:uppercase;">PRESUPUESTO</span><br><span style="font-size:14px;color:#eab308;font-weight:bold;">' + (equipoData.budget || '—') + '</span></div>' +
+            '<div><span style="font-size:10px;color:#64748b;text-transform:uppercase;">OBJETIVO</span><br><span style="font-size:14px;color:#38bdf8;font-weight:bold;">' + (nombreEquipo === gameState.team ? (gameState.objetivoTemporada || '—') : (equipoData.target || '—')) + '</span></div>' +
+            '<div><span style="font-size:10px;color:#64748b;text-transform:uppercase;">VALOR PLANTILLA</span><br><span style="font-size:14px;color:#f8fafc;font-weight:bold;">' + valorFormateado + '</span></div>' +
+            '</div></div></div>' +
+            '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;">' +
+            '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #1e293b;padding-bottom:4px;"><i class="fa-solid fa-chart-simple"></i> RENDIMIENTO Y MEDIAS</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+            '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">' +
+            '<div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;text-align:center;min-width:36px;"><span style="font-size:10px;color:#94a3b8;">GLO</span><br><span style="font-size:18px;color:#38bdf8;font-weight:bold;">' + calc.glo + '</span></div>' +
+            '<div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;text-align:center;min-width:36px;"><span style="font-size:10px;color:#94a3b8;">POR</span><br><span style="font-size:18px;color:#7c3aed;font-weight:bold;">' + calc.por + '</span></div>' +
+            '<div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;text-align:center;min-width:36px;"><span style="font-size:10px;color:#94a3b8;">DEF</span><br><span style="font-size:18px;color:#b91c1c;font-weight:bold;">' + calc.def + '</span></div>' +
+            '<div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;text-align:center;min-width:36px;"><span style="font-size:10px;color:#94a3b8;">MED</span><br><span style="font-size:18px;color:#ea580c;font-weight:bold;">' + calc.med + '</span></div>' +
+            '<div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;text-align:center;min-width:36px;"><span style="font-size:10px;color:#94a3b8;">ATA</span><br><span style="font-size:18px;color:#15803d;font-weight:bold;">' + calc.ata + '</span></div>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:4px;">' +
+            '<span style="font-size:10px;color:#64748b;text-transform:uppercase;">ÚLTIMOS 5 PARTIDOS</span>' +
+            '<div style="display:flex;gap:4px;">' + (formaHtml || '<span style="font-size:11px;color:#64748b;">Sin datos</span>') + '</div>' +
+            '</div></div></div>';
     } else {
-        genHtml += '<div style="color:#94a3b8;font-size:12px;padding:4px;">No hay datos disponibles.</div>';
+        genHtml = '<div style="color:#94a3b8;font-size:12px;padding:4px;">No hay datos disponibles.</div>';
     }
-    var calc = calcularRatingEquipo(squad);
-    genHtml += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;text-align:center;padding:6px 0;margin-top:4px;border-top:1px solid #1e293b;">' +
-        '<div><span style="font-size:10px;color:#94a3b8;">GLO</span><br><span style="font-size:22px;color:#38bdf8;">' + calc.glo + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">POR</span><br><span style="font-size:22px;color:#7c3aed;">' + calc.por + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">DEF</span><br><span style="font-size:22px;color:#b91c1c;">' + calc.def + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">MED</span><br><span style="font-size:22px;color:#ea580c;">' + calc.med + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">ATA</span><br><span style="font-size:22px;color:#15803d;">' + calc.ata + '</span></div>' +
-        '</div>';
     document.getElementById('rivalGeneralContent').innerHTML = genHtml;
 
     // PLANTILLA
+    ordenarPlantilla(squad);
     var htmlInfo = '<table class="squad-table" style="font-size:12px;"><thead><tr>' +
         '<th>#</th><th>Pos</th><th>Jugador</th><th>Nac</th><th>Edad</th><th>Med</th><th>Est</th><th>Valor</th>' +
         '</tr></thead><tbody>';
@@ -746,30 +1148,36 @@ function abrirPlantillaRival(nombreEquipo) {
     document.getElementById('rivalFichajesContent').innerHTML = fichHtml;
 
     // HISTORIAL
-    var palmares = generarPalmaresClub(rating);
-    var historico = generarHistorialPosiciones(rating);
-    var tempActual = new Date().getFullYear();
+    var palmares = obtenerPalmaresClub(nombreEquipo, rating);
+    window._palmaresActual = palmares;
     var histHtml = '' +
-        '<div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin-bottom:4px;">🏆 PALMARÉS</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:4px;">' +
-        '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
-        '<span style="font-size:20px;">🏆</span><br><span style="font-size:18px;color:#facc15;font-weight:bold;">' + palmares.ligas + '</span><br><span style="font-size:9px;color:#94a3b8;">Ligas</span></div>' +
-        '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
-        '<span style="font-size:20px;">🏅</span><br><span style="font-size:18px;color:#38bdf8;font-weight:bold;">' + palmares.copas + '</span><br><span style="font-size:9px;color:#94a3b8;">Copas</span></div>' +
-        '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
-        '<span style="font-size:20px;">⭐</span><br><span style="font-size:18px;color:#6ee7b7;font-weight:bold;">' + palmares.champions + '</span><br><span style="font-size:9px;color:#94a3b8;">Champions</span></div>' +
-        '</div>' +
-        '<div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin:4px 0;">📊 HISTÓRICO LIGA</div>' +
-        '<div style="display:flex;gap:4px;padding:4px;justify-content:center;">';
-    for (var t = 0; t < 5; t++) {
-        var anio = tempActual - 5 + t;
-        var p = historico[t];
-        var col = p <= 4 ? '#49CB2B' : p <= 8 ? '#38bdf8' : p <= 14 ? '#bcbcbc' : '#ED3B46';
-        histHtml += '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:4px 6px;text-align:center;min-width:40px;">' +
-            '<span style="font-size:8px;color:#64748b;">' + anio + '</span><br>' +
-            '<span style="font-size:16px;color:' + col + ';font-weight:bold;">' + p + 'º</span></div>';
+        '<div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin-bottom:4px;"><i class="fa-solid fa-trophy"></i> PALMARÉS</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:4px;">';
+    palmares.forEach(function(t) {
+        var nombreEscaped = t.nombre.replace(/'/g, "\\'");
+        histHtml += '<div class="trofeo-card" onclick="mostrarAniosTrofeo(\'' + nombreEscaped + '\')" style="cursor:pointer;background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
+            t.icono + '<br><span style="font-size:18px;font-weight:bold;color:#facc15;">' + t.count + '</span><br><span style="font-size:9px;color:#94a3b8;">' + t.nombre + '</span></div>';
+    });
+    histHtml += '</div>' +
+        '<div id="trofeoDetail" style="display:none;background:#0f172a;border:1px solid #38bdf8;border-radius:6px;padding:8px;margin-top:4px;">' +
+        '<div id="trofeoDetailContent"></div></div>' +
+        '<div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin:4px 0;"><i class="fa-solid fa-clock-rotate-left"></i> HISTÓRICO LIGA</div>';
+    var historialEquipo = gameState.historialClub[nombreEquipo] || [];
+    if (historialEquipo.length === 0) {
+        histHtml += '<div style="color:#64748b;text-align:center;padding:8px;font-size:12px;">Sin temporadas registradas.</div>';
+    } else {
+        histHtml += '<div style="display:flex;gap:4px;padding:4px;flex-direction:column;">';
+        var reversed = historialEquipo.slice().reverse();
+        var totalEq = equiposDB.length || 20;
+        reversed.forEach(function(h) {
+            var col = h.posicion <= 4 ? '#49CB2B' : h.posicion <= 8 ? '#38bdf8' : h.posicion <= (totalEq - 3) ? '#bcbcbc' : '#ED3B46';
+            histHtml += '<div style="display:flex;align-items:center;gap:6px;background:#0f172a;border:1px solid #334155;border-radius:4px;padding:4px 8px;">' +
+                '<span style="font-size:10px;color:#64748b;min-width:65px;">' + h.temporada + '</span>' +
+                '<span style="font-size:16px;color:' + col + ';font-weight:bold;min-width:30px;">' + h.posicion + 'º</span>' +
+                '<span style="font-size:11px;color:#94a3b8;">' + h.division + '</span></div>';
+        });
+        histHtml += '</div>';
     }
-    histHtml += '</div>';
     document.getElementById('rivalHistorialContent').innerHTML = histHtml;
 
     document.querySelectorAll('#modalRival .rival-tab').forEach(function(t){ t.style.display = 'none'; });
@@ -801,6 +1209,8 @@ function switchRivalSubTab(btn, tabId) {
 function restaurarPanelClub() {
     document.getElementById('panelClubInfo').style.display = '';
     document.getElementById('matchRatingPanel').style.display = 'none';
+    var tEl = document.getElementById('gameTarget');
+    if (tEl) tEl.innerText = gameState.objetivoTemporada || 'Evitar el descenso';
 }
 
 function cerrarModalRival() {
@@ -883,7 +1293,74 @@ function simularPlayoffAscenso(equipoA, equipoB) {
     return ganador;
 }
 
+function calcularRatingMedioLiga() {
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var total = 0, count = 0;
+    equipos.forEach(function(eq) {
+        if (eq.rating) { total += eq.rating; count++; }
+    });
+    return count > 0 ? Math.round(total / count) : 75;
+}
+
+function actualizarObjetivosDirectiva() {
+    var historial = gameState.historialClub[gameState.team] || [];
+    var ultimo = historial.length > 0 ? historial[historial.length - 1] : null;
+    var pos = ultimo ? ultimo.posicion : null;
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var nEq = equipos.length || 20;
+    var objetivo = 'Evitar el descenso';
+
+    if (pos === null) {
+        objetivo = 'Evitar el descenso';
+    } else if (pos <= 4) {
+        objetivo = 'Luchar por la Liga';
+    } else if (pos <= 6) {
+        objetivo = 'Clasificar a Europa';
+    } else if (pos <= 12) {
+        objetivo = 'Mitad de tabla / Top 10';
+    } else if (pos <= nEq - 3) {
+        objetivo = 'Evitar el descenso';
+    } else {
+        objetivo = 'Conseguir el ascenso inmediato';
+    }
+
+    if (ultimo) {
+        var divisionActual = nEq === 20 ? 'Primera División' : nEq === 22 ? 'Segunda División' : gameState.league;
+        if (ultimo.division !== divisionActual) {
+            if (divisionActual === 'Primera División') objetivo = 'Evitar el descenso';
+            else objetivo = 'Conseguir el ascenso inmediato';
+        }
+    }
+
+    var miRating = calcularRatingEquipo(gameState.squad).glo;
+    var mediaLiga = calcularRatingMedioLiga();
+    if (miRating > mediaLiga + 8 && objetivo === 'Evitar el descenso') objetivo = 'Mitad de tabla / Top 10';
+    if (miRating > mediaLiga + 12 && objetivo === 'Mitad de tabla / Top 10') objetivo = 'Clasificar a Europa';
+
+    gameState.objetivoTemporada = objetivo;
+}
+
 function iniciarNuevaTemporada() {
+    if (gameState.fixture && gameState.fixture.length > 0) {
+        var equipos = Database.getTeams(gameState.country, gameState.league);
+        var tabla = calcularClasificacion(equipos, gameState.fixture, gameState.totalMatchdays || 38);
+        var numEquipos = equipos.length;
+        var division = numEquipos === 20 ? 'Primera División' : numEquipos === 22 ? 'Segunda División' : gameState.league;
+        var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+        var seasonStr = m ? m[1] : '2026-27';
+        tabla.forEach(function(t, idx) {
+            if (!gameState.historialClub[t.nombre]) gameState.historialClub[t.nombre] = [];
+            gameState.historialClub[t.nombre].push({
+                temporada: seasonStr,
+                posicion: idx + 1,
+                division: division
+            });
+        });
+        if (tabla.length > 0 && tabla[0].nombre) {
+            registrarTitulo(tabla[0].nombre, 'Primera División', seasonStr);
+        }
+    }
+    actualizarObjetivosDirectiva();
     procesarEvolucionRendimiento();
 
     var todos = obtenerTodosJugadoresLiga();
@@ -908,6 +1385,8 @@ function iniciarNuevaTemporada() {
 
     enviarMensaje('LaLiga', '📅 Nueva temporada',
         'Comienza una nueva temporada. Todos los equipos empiezan desde cero. ¡Suerte!');
+    enviarMensaje('Directiva', '🎯 Nuevo objetivo de temporada',
+        'Tras analizar los resultados, la Directiva ha fijado el siguiente objetivo: ' + gameState.objetivoTemporada + '.');
     renderInbox();
 }
 
@@ -983,7 +1462,11 @@ function calcularPrecio(rating) {
 
 function getPrimerDorsalLibre() {
     var usados = {};
-    if (gameState.squad) { gameState.squad.forEach(function(p){ if (p.dorsal) usados[p.dorsal] = true; }); }
+    if (gameState.squad) { gameState.squad.forEach(function(p){ if (p.dorsal) usados[p.dorsal] = true;         });
+        if (tabla.length > 0 && tabla[0].nombre) {
+            registrarTitulo(tabla[0].nombre, 'Primera División', seasonStr);
+        }
+    }
     for (var d = 1; d <= 99; d++) { if (!usados[d]) return d; }
     return 99;
 }
@@ -1290,7 +1773,8 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
         para: gameState.team,
         precio: precio,
         pos: jugador.pos,
-        rating: jugador.rating
+        rating: jugador.rating,
+        liga: gameState.league
     });
 
     enviarMensaje('Secretaría Técnica', '✍️ Fichaje completado',
@@ -1299,9 +1783,26 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
     renderMercado();
     document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
     showModal('FICHAJE', jugador.name + ' se une al ' + gameState.team + ' con el dorsal #' + dorsal + '. Coste: ' + precio.toFixed(1) + 'M€.');
+    renderSquadTable();
+    renderSquadStats();
 }
 
-function aceptarOferta(jugadorId, precio) {
+function limpiarAccionesMensajes(jugadorId) {
+    var idStr = String(jugadorId);
+    for (var i = 0; i < gameState.mensajes.length; i++) {
+        var msg = gameState.mensajes[i];
+        if (msg.acciones) {
+            for (var a = 0; a < msg.acciones.length; a++) {
+                if (msg.acciones[a].fn.indexOf(idStr) !== -1) {
+                    msg.acciones = null;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+function aceptarOferta(jugadorId, precio, comprador) {
     for (var i = 0; i < gameState.squad.length; i++) {
         if (gameState.squad[i].id === jugadorId) {
             var p = gameState.squad[i];
@@ -1310,33 +1811,127 @@ function aceptarOferta(jugadorId, precio) {
             var jugadorRating = p.rating;
             gameState.budget += precio;
             gameState.squad.splice(i, 1);
+
+            if (comprador) {
+                var squadDest = obtenerSquadEquipo(comprador);
+                if (squadDest) {
+                    var clone = JSON.parse(JSON.stringify(p));
+                    clone.id = 10000 + Math.floor(Math.random() * 90000);
+                    clone.grupo = null;
+                    squadDest.push(clone);
+                    _cachedSquads[comprador] = squadDest;
+                }
+            }
+
             if (!gameState.historialTraspasos) gameState.historialTraspasos = [];
             gameState.historialTraspasos.unshift({
                 fecha: 'J' + (gameState.matchday || 1),
                 tipo: 'venta',
                 jugador: jugadorName,
                 desde: gameState.team,
-                para: 'CPU',
+                para: comprador || 'CPU',
                 precio: precio,
                 pos: jugadorPos,
-                rating: jugadorRating
+                rating: jugadorRating,
+                liga: gameState.league
             });
+            limpiarAccionesMensajes(jugadorId);
             enviarMensaje('Dirección Deportiva', '💰 Traspaso cerrado',
                 'Se ha aceptado la oferta por ' + jugadorName + '. ' + formatearPresupuesto(precio) + ' ingresados en la cuenta del club.');
             renderInbox();
+            renderInboxView();
+            if (gameState.mensajes.length > 0) seleccionarMensaje(gameState.mensajes[0].id);
             document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
+            renderSquadTable();
+            renderSquadStats();
             break;
         }
     }
 }
 
 function rechazarOferta(jugadorId) {
+    limpiarAccionesMensajes(jugadorId);
     enviarMensaje('Dirección Deportiva', '❌ Oferta rechazada',
         'Se ha rechazado la oferta por el jugador.');
     renderInbox();
+    renderInboxView();
+    if (gameState.mensajes.length > 0) seleccionarMensaje(gameState.mensajes[0].id);
+}
+
+function aceptarCesion(jugadorId, equipoDestino, precio) {
+    for (var i = 0; i < gameState.squad.length; i++) {
+        if (gameState.squad[i].id === jugadorId) {
+            var p = gameState.squad[i];
+            gameState.budget += precio;
+            gameState.squad.splice(i, 1);
+
+            var finJornada = (gameState.matchday || 1) + 38;
+            var squadDest = obtenerSquadEquipo(equipoDestino);
+            var idEnDestino = null;
+            if (squadDest) {
+                var clone = JSON.parse(JSON.stringify(p));
+                clone.id = 20000 + Math.floor(Math.random() * 90000);
+                clone.esCedido = true;
+                clone.equipoOrigen = gameState.team;
+                clone.jornadaFinCesion = finJornada;
+                clone.grupo = null;
+                idEnDestino = clone.id;
+                squadDest.push(clone);
+                _cachedSquads[equipoDestino] = squadDest;
+
+                if (!gameState.cedidosFuera) gameState.cedidosFuera = [];
+                gameState.cedidosFuera.push({
+                    id: p.id,
+                    nombre: p.name,
+                    pos: p.pos,
+                    rating: p.rating,
+                    edad: p.age,
+                    nacionalidad: p.nationality,
+                    altura: p.height,
+                    dorsal: p.dorsal,
+                    val: p.val,
+                    statsTemporada: p.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 },
+                    lesionSemanas: p.lesionSemanas || 0,
+                    sancionSemanas: p.sancionSemanas || 0,
+                    destino: equipoDestino,
+                    idEnDestino: idEnDestino,
+                    jornadaFin: finJornada
+                });
+            }
+
+            if (!gameState.historialTraspasos) gameState.historialTraspasos = [];
+            gameState.historialTraspasos.unshift({
+                fecha: 'J' + (gameState.matchday || 1),
+                tipo: 'cesion',
+                jugador: p.name,
+                desde: gameState.team,
+                para: equipoDestino,
+                precio: precio,
+                pos: p.pos,
+                rating: p.rating,
+                liga: gameState.league
+            });
+            limpiarAccionesMensajes(jugadorId);
+            enviarMensaje('Dirección Deportiva', '\ud83d\udcc4 Cesión cerrada',
+                p.name + ' se marcha cedido al ' + equipoDestino + '. Ingreso: ' + formatearPresupuesto(precio) + '.');
+            renderInbox();
+            renderInboxView();
+            if (gameState.mensajes.length > 0) seleccionarMensaje(gameState.mensajes[0].id);
+            document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
+            renderSquadTable();
+            renderSquadStats();
+            break;
+        }
+    }
+}
+
+function esMercadoAbierto() {
+    var j = gameState.matchday || 1;
+    return (j >= 1 && j <= 4) || (j >= 19 && j <= 21);
 }
 
 function simularMercadoCPU() {
+    if (!esMercadoAbierto()) { console.log('[MERCADO CPU] Cerrado (J' + gameState.matchday + ')'); return; }
     if (Object.keys(_presupuestosCPU).length === 0) {
         var equipos = Database.getTeams(gameState.country, gameState.league);
         equipos.forEach(function(eq) {
@@ -1346,15 +1941,19 @@ function simularMercadoCPU() {
         });
     }
     var equipos = Database.getTeams(gameState.country, gameState.league);
-    equipos.forEach(function(comprador) {
-        if (comprador.name === gameState.team) return;
-        if (Math.random() > 0.25) return;
+    var objetivo = 2 + Math.floor(Math.random() * 4);
+    var realizadas = 0;
+    var maxIter = objetivo * 15;
+
+    while (realizadas < objetivo && maxIter-- > 0) {
+        var comprador = equipos[Math.floor(Math.random() * equipos.length)];
+        if (comprador.name === gameState.team) continue;
 
         var presupuesto = _presupuestosCPU[comprador.name] || 0;
-        if (presupuesto < 1) return;
+        if (presupuesto < 1) continue;
 
         var squad = obtenerSquadEquipo(comprador.name);
-        if (!squad || squad.length < 11) return;
+        if (!squad || squad.length < 11) continue;
 
         var conteo = {}, maxRating = {};
         var todasPos = ['PO','DFC','LD','LI','CAI','CAD','MCD','MC','MCO','MI','MD','EI','ED','DC'];
@@ -1379,7 +1978,7 @@ function simularMercadoCPU() {
                 necesidades.push(g);
             }
         }
-        if (necesidades.length === 0) return;
+        if (necesidades.length === 0) continue;
 
         var grupoNeeded = necesidades[Math.floor(Math.random() * necesidades.length)];
         var posBuscar = grupos[grupoNeeded];
@@ -1398,17 +1997,17 @@ function simularMercadoCPU() {
                 }
             });
         });
-        if (candidatos.length === 0) return;
+        if (candidatos.length === 0) continue;
         candidatos.sort(function(a, b) { return b.jugador.rating - a.jugador.rating; });
         var target = candidatos[0];
 
         var squadVendedor = _cachedSquads[target.equipo];
-        if (!squadVendedor) return;
+        if (!squadVendedor) continue;
         var idx = -1;
         for (var i = 0; i < squadVendedor.length; i++) {
             if (squadVendedor[i].id === target.jugador.id) { idx = i; break; }
         }
-        if (idx === -1) return;
+        if (idx === -1) continue;
 
         var jugador = squadVendedor.splice(idx, 1)[0];
         _presupuestosCPU[comprador.name] = (_presupuestosCPU[comprador.name] || 0) - target.precio;
@@ -1427,31 +2026,89 @@ function simularMercadoCPU() {
             para: comprador.name,
             precio: target.precio,
             pos: jugador.pos,
-            rating: jugador.rating
+            rating: jugador.rating,
+            liga: gameState.league
         });
-    });
+        realizadas++;
+    }
+    console.log('[MERCADO CPU] Objetivo: ' + objetivo + ', Realizadas: ' + realizadas);
 }
 
 function generarOfertasCPU() {
     if (!gameState.squad || gameState.squad.length === 0) return;
-    if (Math.random() > 0.15) return;
-    var elegido = gameState.squad[Math.floor(Math.random() * gameState.squad.length)];
-    var descuento = 0.5 + Math.random() * 0.3;
-    var precio = Math.round(calcularPrecio(elegido.rating) * descuento * 100) / 100;
+    if (!esMercadoAbierto()) { console.log('[MERCADO] Cerrado (J' + gameState.matchday + ')'); return; }
+
+    var intentos = 3 + Math.floor(Math.random() * 3);
+    var ofertasEnviadas = 0;
     var equipos = Database.getTeams(gameState.country, gameState.league);
-    var ofertante = null;
-    for (var i = 0; i < equipos.length; i++) {
-        if (equipos[i].name !== gameState.team) { ofertante = equipos[i].name; break; }
+
+    for (var t = 0; t < intentos; t++) {
+        var disponibles = gameState.squad.filter(function(p) {
+            return p.lesionSemanas === 0 && p.sancionSemanas === 0;
+        });
+        if (disponibles.length === 0) { console.log('[MERCADO] Sin jugadores disponibles'); break; }
+
+        var elegido = disponibles[Math.floor(Math.random() * disponibles.length)];
+        var valor = calcularPrecio(elegido.rating);
+
+        var posibles = [];
+        equipos.forEach(function(eq) {
+            if (eq.name === gameState.team) return;
+            var presupuesto = _presupuestosCPU[eq.name] || parsearPresupuesto(eq.budget || '2.0M€');
+            if (presupuesto >= valor * 0.6) posibles.push(eq.name);
+        });
+        if (posibles.length === 0) { console.log('[MERCADO] Sin comprador con presupuesto para', elegido.name); continue; }
+
+        var ofertante = posibles[Math.floor(Math.random() * posibles.length)];
+        if (Math.random() < 0.2) {
+            var precioCesion = Math.round(valor * 0.1 * 100) / 100;
+            enviarMensaje(ofertante, '\ud83d\udcc4 Cesión de ' + elegido.name,
+                'El ' + ofertante + ' solicita la cesión de ' + elegido.name + ' (coste: ' + precioCesion.toFixed(1) + 'M\u20ac).',
+                [
+                    { texto: '\u2705 Aceptar cesión', fn: 'aceptarCesion(' + elegido.id + ',\'' + ofertante + '\',' + precioCesion + ')' },
+                    { texto: '\u274c Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
+                ]
+            );
+            ofertasEnviadas++;
+            console.log('[MERCADO] Cesión ofrecida:', elegido.name, '→', ofertante);
+        } else {
+            var precio = Math.round(valor * (0.8 + Math.random() * 0.3) * 100) / 100;
+            enviarMensaje(ofertante, '\ud83d\udce8 Oferta por ' + elegido.name,
+                'El ' + ofertante + ' ofrece ' + precio.toFixed(1) + 'M\u20ac por ' + elegido.name + '.',
+                [
+                    { texto: '\u2705 Aceptar (' + precio.toFixed(1) + 'M\u20ac)', fn: 'aceptarOferta(' + elegido.id + ',' + precio + ",'" + ofertante + "')" },
+                    { texto: '\u274c Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
+                ]
+            );
+            ofertasEnviadas++;
+            console.log('[MERCADO] Oferta enviada:', elegido.name, '→', ofertante, precio + 'M\u20ac');
+        }
     }
-    if (!ofertante) return;
-    var ofertaId = 'oferta_' + elegido.id;
-    enviarMensaje('Dirección Deportiva', '📨 Oferta por ' + elegido.name,
-        'El ' + ofertante + ' ofrece ' + precio.toFixed(1) + 'M€ por ' + elegido.name + '. ¿Qué haces?',
-        [
-            { texto: '✅ Aceptar (' + precio.toFixed(1) + 'M€)', fn: 'aceptarOferta(' + elegido.id + ',' + precio + ')' },
-            { texto: '❌ Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
-        ]
-    );
+
+    if (ofertasEnviadas === 0) {
+        var planB = null;
+        for (var i = 0; i < gameState.squad.length; i++) {
+            if (gameState.squad[i].lesionSemanas === 0) { planB = gameState.squad[i]; break; }
+        }
+        if (planB) {
+            var compradorB = null;
+            for (var i = 0; i < equipos.length; i++) {
+                if (equipos[i].name !== gameState.team) { compradorB = equipos[i].name; break; }
+            }
+            if (compradorB) {
+                var precioB = Math.round(calcularPrecio(planB.rating) * 0.5 * 100) / 100;
+                enviarMensaje(compradorB, '\ud83d\udce8 Oferta por ' + planB.name,
+                    'El ' + compradorB + ' ofrece ' + precioB.toFixed(1) + 'M\u20ac por ' + planB.name + '.',
+                    [
+                        { texto: '\u2705 Aceptar (' + precioB.toFixed(1) + 'M\u20ac)', fn: 'aceptarOferta(' + planB.id + ',' + precioB + ",'" + compradorB + "')" },
+                        { texto: '\u274c Rechazar', fn: 'rechazarOferta(' + planB.id + ')' }
+                    ]
+                );
+                console.log('[MERCADO] Oferta garantizada:', planB.name, '→', compradorB, precioB + 'M\u20ac');
+            }
+        }
+    }
+    console.log('[MERCADO] Intentos: ' + intentos + ', Ofertas: ' + ofertasEnviadas);
 }
 
 var seleccionID = null;
@@ -3005,6 +3662,55 @@ function recuperarEstaminaPlantilla(diasDescanso) {
     }
 }
 
+function procesarRetornoCesiones() {
+    if (!gameState.cedidosFuera || gameState.cedidosFuera.length === 0) return;
+    var pendientes = [];
+    var devueltos = [];
+    for (var i = 0; i < gameState.cedidosFuera.length; i++) {
+        var cr = gameState.cedidosFuera[i];
+        if ((gameState.matchday || 1) >= cr.jornadaFin) {
+            var squadD = _cachedSquads[cr.destino];
+            if (squadD) {
+                for (var j = 0; j < squadD.length; j++) {
+                    if (squadD[j].id === cr.idEnDestino) {
+                        squadD.splice(j, 1);
+                        _cachedSquads[cr.destino] = squadD;
+                        break;
+                    }
+                }
+            }
+            var nuevoId = 30000 + Math.floor(Math.random() * 90000);
+            var dorsal = getPrimerDorsalLibre();
+            gameState.squad.push({
+                id: nuevoId,
+                pos: cr.pos,
+                name: cr.nombre,
+                dorsal: dorsal,
+                fullName: cr.nombre,
+                nationality: cr.nacionalidad || 'es',
+                age: cr.edad || 25,
+                height: cr.altura || 178,
+                rating: cr.rating || 70,
+                stamina: '100%',
+                val: cr.val || '0M€',
+                lesionSemanas: 0,
+                sancionSemanas: 0,
+                tarjetasAmarillasAcum: 0,
+                statsTemporada: cr.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 }
+            });
+            devueltos.push(cr.nombre);
+        } else {
+            pendientes.push(cr);
+        }
+    }
+    if (devueltos.length > 0) {
+        gameState.cedidosFuera = pendientes;
+        enviarMensaje('Dirección Deportiva', '\ud83d\udcc4 Fin de cesión',
+            devueltos.join(', ') + ' ha(n) regresado al club tras finalizar su cesión.');
+        renderInbox();
+    }
+}
+
 function nextMatch() {
     var jornadaAnterior = (gameState.matchday || 1) - 1;
     var diasDescanso = 7;
@@ -3015,8 +3721,10 @@ function nextMatch() {
     if (gameState.fixture && gameState.fixture[jornadaAnterior]) {
         simularJornadaCPU(jornadaAnterior);
     }
-    simularMercadoCPU();
-    generarOfertasCPU();
+    if (esMercadoAbierto()) {
+        simularMercadoCPU();
+        generarOfertasCPU();
+    }
     gameState.matchday = (gameState.matchday || 1) + 1;
 
     if (gameState.matchday > gameState.totalMatchdays) {
@@ -3101,6 +3809,9 @@ function obtenerEstadoJuego() {
         mensajes: gameState.mensajes,
         ultimoIdMensaje: gameState.ultimoIdMensaje,
         historialTraspasos: gameState.historialTraspasos,
+        cedidosFuera: gameState.cedidosFuera,
+        historialClub: gameState.historialClub,
+        palmaresClub: gameState.palmaresClub,
         estiloPresion: gameState.estiloPresion,
         formacion: gameState.formacion,
         capitanId: gameState.capitanId,
@@ -3146,8 +3857,18 @@ function cargarPartida(slotId) {
     if (data.fixtureRatings) { for (var k in data.fixtureRatings) { _fixtureRatings[k] = data.fixtureRatings[k]; } }
     if (data.presupuestosCPU) { for (var k in data.presupuestosCPU) { _presupuestosCPU[k] = data.presupuestosCPU[k]; } }
     gameState.mensajes = data.mensajes || [];
+    (gameState.mensajes || []).forEach(function(msg) {
+        if (msg.acciones) {
+            msg.acciones.forEach(function(act) {
+                act.fn = act.fn.replace(/"([^"]*)"/g, "'$1'");
+            });
+        }
+    });
     gameState.ultimoIdMensaje = data.ultimoIdMensaje || 0;
     gameState.historialTraspasos = data.historialTraspasos || [];
+    gameState.cedidosFuera = data.cedidosFuera || [];
+    gameState.historialClub = data.historialClub || {};
+    gameState.palmaresClub = data.palmaresClub || {};
     gameState.estiloPresion = data.estiloPresion || 'pesada';
     gameState.formacion = data.formacion || '4-4-2 Estándar';
     gameState.capitanId = data.capitanId || null;
@@ -3247,35 +3968,7 @@ function renderSlots() {
 }
 
 function previewSquad() {
-    var squad = gameState.squad;
-    if (!squad || squad.length === 0) {
-        squad = generateSquad(gameState.rating);
-    }
-    document.getElementById('squadModalTitle').innerText = 'PLANTILLA: ' + gameState.team.toUpperCase();
-    var tbody = document.getElementById('squadModalBody');
-    tbody.innerHTML = '';
-    var table = document.createElement('table');
-    table.className = 'squad-table';
-    table.innerHTML =
-        '<thead><tr><th>#</th><th>Pos</th><th>Jugador</th><th>Nac</th><th>Edad</th><th>Med</th><th>Est</th><th>Valor</th></tr></thead>';
-    var tbodyInner = document.createElement('tbody');
-    squad.forEach(function (p) {
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-            '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
-            '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + getEstadoIcono(p) + '</td>' +
-            '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
-            '<td>' + p.age + '</td>' +
-            '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
-            '<td>' + (p.stamina || '100%') + '</td>' +
-            '<td>' + p.val + '</td>';
-        tr.onclick = function () { showPlayerDetail(p); };
-        tbodyInner.appendChild(tr);
-    });
-    table.appendChild(tbodyInner);
-    tbody.appendChild(table);
-    document.getElementById('squadModal').classList.add('active');
+    abrirPlantillaRival(gameState.team);
 }
 
 function closeSquadModal() {
@@ -3285,6 +3978,7 @@ function closeSquadModal() {
 function renderDorsalManager() {
     var select = document.getElementById('dorsalPlayerSelect');
     var grid = document.getElementById('tabDorsalGrid');
+    ordenarPlantilla(gameState.squad);
     var squad = gameState.squad;
 
     var currentVal = select._saved;
