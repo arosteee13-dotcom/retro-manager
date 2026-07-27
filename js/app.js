@@ -1304,6 +1304,8 @@ function switchRivalSubTab(btn, tabId) {
 function restaurarPanelClub() {
     document.getElementById('panelClubInfo').style.display = '';
     document.getElementById('matchRatingPanel').style.display = 'none';
+    document.getElementById('btnGuardarPartida').style.display = '';
+    document.getElementById('btnSalirMenu').style.display = '';
     var tEl = document.getElementById('gameTarget');
     if (tEl) tEl.innerText = gameState.objetivoTemporada || 'Evitar el descenso';
 }
@@ -3311,6 +3313,9 @@ function renderClasificacion() {
         return;
     }
 
+    var thead = document.querySelector('#comp-clasificacion thead');
+    if (thead) thead.style.display = '';
+
     if (!gameState.fixturesPorLiga || Object.keys(gameState.fixturesPorLiga).length === 0) {
         if (!gameState.fixture || gameState.fixture.length === 0) generarCalendario();
     }
@@ -3405,6 +3410,8 @@ function renderClasificacion() {
 
 function renderCopaEnClasificacion(nombreCopa) {
     if (!gameState.copa) generarCuadroCopa();
+    var thead = document.querySelector('#comp-clasificacion thead');
+    if (thead) thead.style.display = 'none';
     var container = document.getElementById('clasificacionBody');
     var leyenda = document.getElementById('leyendaColores');
     var colStats = document.getElementById('colStats');
@@ -3419,7 +3426,7 @@ function renderCopaEnClasificacion(nombreCopa) {
         });
     }
     html += '</div>';
-    html += '<div style="max-height:280px;overflow-y:auto;">' + buildCopaBracketHTML(gameState.copa, _copaFilterRound) + '</div>';
+    html += '<div style="width:340px;height:248px;overflow-y:auto;">' + buildCopaBracketHTML(gameState.copa, _copaFilterRound) + '</div>';
     html += '</td></tr>';
     container.innerHTML = html;
 }
@@ -3746,6 +3753,8 @@ function abrirDropdown(e, tipo) {
 function cerrarDropdown() {
     var dropdown = document.getElementById('tacticDropdown');
     if (dropdown) dropdown.style.display = 'none';
+    var matchDd = document.getElementById('matchTacticDropdown');
+    if (matchDd) matchDd.style.display = 'none';
     _dropdownTipo = null;
 }
 
@@ -3940,10 +3949,21 @@ function onClickJugador(jugadorId, grupo) {
     } else if (!_sel2 && jugadorId !== _sel1.id) {
         _sel2 = { id: jugadorId, grupo: grupo };
 
-        // Si son del mismo grupo (ambos T o ambos S), reiniciar
+        // Si son del mismo grupo
         if (_sel1.grupo === _sel2.grupo) {
-            _sel1 = _sel2;
-            _sel2 = null;
+            if (_sel1.grupo === 'T') {
+                var idx1 = -1, idx2 = -1;
+                for (var i = 0; i < matchState.jugadoresEnCampo.length; i++) {
+                    if (matchState.jugadoresEnCampo[i].id === _sel1.id) idx1 = i;
+                    if (matchState.jugadoresEnCampo[i].id === _sel2.id) idx2 = i;
+                }
+                if (idx1 >= 0 && idx2 >= 0) {
+                    var temp = matchState.jugadoresEnCampo[idx1];
+                    matchState.jugadoresEnCampo[idx1] = matchState.jugadoresEnCampo[idx2];
+                    matchState.jugadoresEnCampo[idx2] = temp;
+                }
+            }
+            _sel1 = null; _sel2 = null;
             mostrarMenuDescanso(matchState);
             return;
         }
@@ -3985,8 +4005,8 @@ function confirmarCambios() {
     _sel1 = null; _sel2 = null;
     document.getElementById('halfTimeMenu').style.display = 'none';
     document.getElementById('btnContinuarSegundaParte').style.display = 'none';
-    document.getElementById('btnGuardarPartida').style.display = '';
-    document.getElementById('btnSalirMenu').style.display = '';
+    document.getElementById('btnGuardarPartida').style.display = 'none';
+    document.getElementById('btnSalirMenu').style.display = 'none';
     document.getElementById('matchCommentary').style.display = '';
     document.getElementById('matchCommentary').innerHTML += '<p style="color:#38bdf8;">¡Comienza la segunda parte!</p>';
     document.getElementById('gameSidebarNav').style.display = '';
@@ -4033,8 +4053,8 @@ function getOpcionesDropdown(tipo) {
 
 function abrirDropdownMatch(e, tipo) {
     e.stopPropagation();
-    var dd = document.getElementById('tacticDropdown');
-    var list = document.getElementById('tacticDropdownList');
+    var dd = document.getElementById('matchTacticDropdown');
+    var list = document.getElementById('matchTacticDropdownList');
     if (!dd || !list) return;
 
     var sidebar = document.querySelector('.game-sidebar');
@@ -4113,8 +4133,8 @@ function runMatchSimulation() {
     document.getElementById('halfTimeMenu').style.display = 'none';
     document.getElementById('btnContinueMatch').style.display = 'none';
     document.getElementById('btnContinuarSegundaParte').style.display = 'none';
-    document.getElementById('btnGuardarPartida').style.display = '';
-    document.getElementById('btnSalirMenu').style.display = '';
+    document.getElementById('btnGuardarPartida').style.display = 'none';
+    document.getElementById('btnSalirMenu').style.display = 'none';
 
     document.getElementById('panelClubInfo').style.display = 'none';
     document.getElementById('matchRatingPanel').style.display = 'flex';

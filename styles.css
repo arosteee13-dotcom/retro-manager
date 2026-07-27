@@ -338,6 +338,7 @@ body {
 }
 
 .game-sidebar {
+    position: relative;
     background: #111720;
     border: 1px solid #222d3d;
     border-radius: 4px;
