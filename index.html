@@ -144,36 +144,51 @@
         <div id="screen-game" class="screen">
             <div class="game-layout">
                 <div class="game-sidebar">
-                    <button class="nav-tab-btn active" onclick="switchGameTab(this, 'tab-inicio')">
-                        <i class="fa-solid fa-house"></i> Inicio
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-inbox')">
-                        <i class="fa-solid fa-envelope"></i> Mensajes <span id="inboxUnreadBadge" class="inbox-badge"></span>
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-finanzas')">
-                        <i class="fa-solid fa-coins"></i> Finanzas
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-plantilla')">
-                        <i class="fa-solid fa-users"></i> Plantilla
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-tacticas')">
-                        <i class="fa-solid fa-clipboard-user"></i> Tácticas
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-calendario')">
-                        <i class="fa-solid fa-calendar"></i> Calendario
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-mercado')">
-                        <i class="fa-solid fa-cart-shopping"></i> Mercado
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-competiciones')">
-                        <i class="fa-solid fa-trophy"></i> Torneo
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-estadio')">
-                        <i class="fa-solid fa-building"></i> Estadio
-                    </button>
-                    <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-dorsales')">
-                        <i class="fa-solid fa-tshirt"></i> Dorsales
-                    </button>
+                    <div id="gameSidebarNav">
+                        <button class="nav-tab-btn active" onclick="switchGameTab(this, 'tab-inicio')">
+                            <i class="fa-solid fa-house"></i> Inicio
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-inbox')">
+                            <i class="fa-solid fa-envelope"></i> Mensajes <span id="inboxUnreadBadge" class="inbox-badge"></span>
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-finanzas')">
+                            <i class="fa-solid fa-coins"></i> Finanzas
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-plantilla')">
+                            <i class="fa-solid fa-users"></i> Plantilla
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-tacticas')">
+                            <i class="fa-solid fa-clipboard-user"></i> Tácticas
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-calendario')">
+                            <i class="fa-solid fa-calendar"></i> Calendario
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-mercado')">
+                            <i class="fa-solid fa-cart-shopping"></i> Mercado
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-competiciones')">
+                            <i class="fa-solid fa-trophy"></i> Torneo
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-estadio')">
+                            <i class="fa-solid fa-building"></i> Estadio
+                        </button>
+                        <button class="nav-tab-btn" onclick="switchGameTab(this, 'tab-dorsales')">
+                            <i class="fa-solid fa-tshirt"></i> Dorsales
+                        </button>
+                    </div>
+                    <div id="matchSidebar" class="match-sidebar" style="display:none;">
+                        <div class="match-sidebar-title"><i class="fa-solid fa-gamepad"></i> CONTROL PARTIDO</div>
+                        <div class="match-tactic-card" onclick="abrirDropdownMatch(event,'formacion')">
+                            <div class="tactic-card-label" style="font-size:10px;">FORMACIÓN</div>
+                            <div id="matchFormacionDisplay" class="tactic-card-value" style="font-size:13px;">4-4-2 Estándar</div>
+                            <div style="font-size:9px;color:#38bdf8;text-align:right;">▼</div>
+                        </div>
+                        <div class="match-tactic-card" onclick="abrirDropdownMatch(event,'presion')">
+                            <div class="tactic-card-label" style="font-size:10px;">PRESIÓN</div>
+                            <div id="matchPresionDisplay" class="tactic-card-value" style="font-size:13px;">🟡 Pesada</div>
+                            <div style="font-size:9px;color:#38bdf8;text-align:right;">▼</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="game-main-area">
@@ -372,7 +387,7 @@
                                     <div id="colTitulares" class="sub-card" style="flex:1;display:flex;flex-direction:column;gap:2px;overflow-y:auto;"></div>
                                     <div id="colSuplentes" class="sub-card" style="flex:1;display:flex;flex-direction:column;gap:2px;overflow-y:auto;"></div>
                                 </div>
-                                <button class="btn-retro green" onclick="confirmarCambios()" style="padding:8px;">CONTINUAR A LA 2ª PARTE</button>
+                                <button class="btn-retro green" onclick="confirmarCambios()" style="padding:8px;">CONTINUAR</button>
                             </div>
                         </div>
                     </div>
@@ -519,7 +534,7 @@
                             <i class="fa-solid fa-right-from-bracket"></i> SALIR AL MENÚ
                         </button>
                         <button class="btn-retro green btn-sm" id="btnContinuarSegundaParte" onclick="confirmarCambios()" style="display:none;">
-                            <i class="fa-solid fa-forward"></i> CONTINUAR A LA 2ª PARTE
+                            <i class="fa-solid fa-forward"></i> CONTINUAR
                         </button>
                     </div>
                 </div>

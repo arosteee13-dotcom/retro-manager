@@ -1019,6 +1019,39 @@ body {
     display: inline-block;
 }
 
+.match-sidebar {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    padding: 4px;
+}
+.match-sidebar-title {
+    font-size: 11px;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    border-bottom: 1px solid #263342;
+    padding-bottom: 6px;
+}
+.match-tactic-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+}
+.match-tactic-card:hover {
+    border-color: #38bdf8;
+}
+
+#gameSidebarNav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .inbox-layout {
     display: flex;
     gap: 8px;
@@ -1141,16 +1174,21 @@ body {
 .match-nota-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 4px;
-    font-size: 12px;
+    gap: 2px;
+    padding: 2px 2px;
+    font-size: 11px;
 }
 .match-nota-row + .match-nota-row { border-top: 1px solid #1b2636; }
-.mn-dorsal { font-size: 10px; color: #94a3b8; min-width: 24px; }
-.mn-nombre { flex: 1; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mn-nota { font-weight: bold; min-width: 24px; text-align: right; margin-left: 4px; }
+.mn-dorsal { display: none; }
+.mn-nombre { flex: 1; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.mn-nota { font-weight: bold; min-width: 16px; text-align: right; margin-left: 0; font-size: 10px; }
 
-.mn-badges { font-size: 11px; min-width: 32px; text-align: center; }
+.mn-badges { font-size: 10px; min-width: 18px; text-align: center; }
+
+.match-nota-row span:last-child {
+    min-width: 24px !important;
+    font-size: 9px !important;
+}
 
 .sub-card {
     background: #0f141c;

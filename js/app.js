@@ -128,7 +128,7 @@ function renderInbox() {
             html += '<div class="msg-acciones">';
             for (var a = 0; a < msg.acciones.length; a++) {
                 var act = msg.acciones[a];
-                html += '<button class="btn-retro btn-sm" onclick="event.stopPropagation();' + act.fn + '" style="font-size:7px;">' + act.texto + '</button> ';
+                html += '<button class="btn-retro ' + (act.texto.indexOf('Aceptar') !== -1 ? 'green' : 'danger') + ' btn-sm" onclick="event.stopPropagation();' + act.fn + '" style="font-size:7px;">' + act.texto + '</button> ';
             }
             html += '</div>';
         }
@@ -259,7 +259,7 @@ function seleccionarMensaje(id) {
     if (msg.acciones) {
         html += '<div class="inbox-reader-acciones">';
         for (var a = 0; a < msg.acciones.length; a++) {
-            html += '<button class="btn-retro green btn-sm" onclick="' + msg.acciones[a].fn + '">' + msg.acciones[a].texto + '</button>';
+            html += '<button class="btn-retro ' + (msg.acciones[a].texto.indexOf('Aceptar') !== -1 ? 'green' : 'danger') + ' btn-sm" onclick="' + msg.acciones[a].fn + '">' + msg.acciones[a].texto + '</button>';
         }
         html += '</div>';
     }
@@ -516,6 +516,8 @@ function startGame() {
         'Dispones de un presupuesto de ' + formatearPresupuesto(gameState.budget) + ' para afrontar la temporada.');
     enviarMensaje('Oficina de Prensa', 'Comienza la temporada',
         'La temporada 2026-27 arranca con la jornada 1. Tu primer rival será el ' + gameState.opponent + '. ¡Buena suerte!');
+    enviarMensaje('Directiva', '🎯 Objetivo de la temporada',
+        'La Directiva ha fijado el siguiente objetivo: ' + gameState.objetivoTemporada + '. ¡Cumple con las expectativas!');
     renderInbox();
 
     goToScreen('screen-game');
@@ -1432,14 +1434,21 @@ function renderMatchNotas(xi, eventos, gc, partidoFinalizado) {
         var badges = '';
         if (cnt.gol > 0) badges += '\u26BD ';
         if (cnt.asi > 0) badges += '\uD83C\uDD70 ';
-        if (esSuplenteEntrado(p.id)) badges += '\uD83D\uDFE2 ';
+        if (esSuplenteEntrado(p.id)) badges += '<i class="fa-solid fa-arrow-up" style="color:#22c55e;font-size:11px;"></i> ';
 
         var stam = parseInt(p.stamina) || 100;
         var stamColor = stam > 60 ? '#22c55e' : stam > 30 ? '#eab308' : '#ef4444';
 
+        var nombreMostrar = p.name;
+        var ultEsp = nombreMostrar.lastIndexOf(' ');
+        if (ultEsp > 0) {
+            var inicial = nombreMostrar.charAt(0);
+            nombreMostrar = inicial + '. ' + nombreMostrar.substring(ultEsp + 1);
+        }
+
         html += '<div class="match-nota-row">' +
-            '<span class="mn-dorsal">[' + (p.dorsal || '-') + ']</span>' +
-            '<span class="mn-nombre">' + p.name + '</span>' +
+            '<span class="pos-badge" style="background:' + getColorLinea(p.pos) + ';color:#fff;font-size:9px;width:24px;padding:1px 0;">' + p.pos + '</span>' +
+            '<span class="mn-nombre" title="' + p.name + '">' + nombreMostrar + '</span>' +
             (badges ? '<span class="mn-badges">' + badges + '</span>' : '<span class="mn-badges"></span>') +
             '<span class="mn-nota" style="color:' + color + ';">' + nota.toFixed(1) + '</span>' +
             '<span style="font-size:10px;color:' + stamColor + ';min-width:36px;text-align:right;">⚡' + stam + '</span>' +
@@ -2065,8 +2074,8 @@ function generarOfertasCPU() {
             enviarMensaje(ofertante, '\ud83d\udcc4 Cesión de ' + elegido.name,
                 'El ' + ofertante + ' solicita la cesión de ' + elegido.name + ' (coste: ' + precioCesion.toFixed(1) + 'M\u20ac).',
                 [
-                    { texto: '\u2705 Aceptar cesión', fn: 'aceptarCesion(' + elegido.id + ',\'' + ofertante + '\',' + precioCesion + ')' },
-                    { texto: '\u274c Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
+                    { texto: 'Aceptar cesión', fn: 'aceptarCesion(' + elegido.id + ',\'' + ofertante + '\',' + precioCesion + ')' },
+                    { texto: 'Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
                 ]
             );
             ofertasEnviadas++;
@@ -2076,8 +2085,8 @@ function generarOfertasCPU() {
             enviarMensaje(ofertante, '\ud83d\udce8 Oferta por ' + elegido.name,
                 'El ' + ofertante + ' ofrece ' + precio.toFixed(1) + 'M\u20ac por ' + elegido.name + '.',
                 [
-                    { texto: '\u2705 Aceptar (' + precio.toFixed(1) + 'M\u20ac)', fn: 'aceptarOferta(' + elegido.id + ',' + precio + ",'" + ofertante + "')" },
-                    { texto: '\u274c Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
+                    { texto: 'Aceptar', fn: 'aceptarOferta(' + elegido.id + ',' + precio + ",'" + ofertante + "')" },
+                    { texto: 'Rechazar', fn: 'rechazarOferta(' + elegido.id + ')' }
                 ]
             );
             ofertasEnviadas++;
@@ -2100,8 +2109,8 @@ function generarOfertasCPU() {
                 enviarMensaje(compradorB, '\ud83d\udce8 Oferta por ' + planB.name,
                     'El ' + compradorB + ' ofrece ' + precioB.toFixed(1) + 'M\u20ac por ' + planB.name + '.',
                     [
-                        { texto: '\u2705 Aceptar (' + precioB.toFixed(1) + 'M\u20ac)', fn: 'aceptarOferta(' + planB.id + ',' + precioB + ",'" + compradorB + "')" },
-                        { texto: '\u274c Rechazar', fn: 'rechazarOferta(' + planB.id + ')' }
+                        { texto: 'Aceptar', fn: 'aceptarOferta(' + planB.id + ',' + precioB + ",'" + compradorB + "')" },
+                        { texto: 'Rechazar', fn: 'rechazarOferta(' + planB.id + ')' }
                     ]
                 );
                 console.log('[MERCADO] Oferta garantizada:', planB.name, '→', compradorB, precioB + 'M\u20ac');
@@ -2526,6 +2535,13 @@ function simularJornadaCPU(jornadaIdx) {
         p.golesV = res.golesV;
         p.jugado = true;
         registrarEventosPartido(res.eventos, p);
+        [xiL, xiV].forEach(function(xi) {
+            xi.forEach(function(j) {
+                if (!j.statsTemporada) j.statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 };
+                j.statsTemporada.partidos = (j.statsTemporada.partidos || 0) + 1;
+                j.pj = (j.pj || 0) + 1;
+            });
+        });
         aplicarDesgasteXI(xiL);
         aplicarDesgasteXI(xiV);
         aplicarLesiones(xiL, p.local);
@@ -3167,7 +3183,7 @@ function seleccionarOpcionDropdown(tipo, valor) {
 
 document.addEventListener('click', function(e) {
     var dd = document.getElementById('tacticDropdown');
-    if (dd && dd.style.display === 'block' && !dd.contains(e.target) && !e.target.closest('.tactic-card')) {
+    if (dd && dd.style.display === 'block' && !dd.contains(e.target) && !e.target.closest('.tactic-card') && !e.target.closest('.match-tactic-card')) {
         cerrarDropdown();
     }
     var fd = document.getElementById('filterDropdown');
@@ -3267,6 +3283,12 @@ function mostrarMenuDescanso(matchState) {
     document.getElementById('btnContinuarSegundaParte').style.display = '';
     document.getElementById('btnGuardarPartida').style.display = 'none';
     document.getElementById('btnSalirMenu').style.display = 'none';
+
+    document.getElementById('gameSidebarNav').style.display = 'none';
+    document.getElementById('matchSidebar').style.display = 'flex';
+    document.getElementById('matchFormacionDisplay').innerText = gameState.formacion || '4-4-2 Estándar';
+    var presLabels = { suave: '\ud83d\udfe2 Suave', pesada: '\ud83d\udfe1 Pesada', extrema: '\ud83d\udd34 Extrema' };
+    document.getElementById('matchPresionDisplay').innerText = presLabels[gameState.estiloPresion] || '\ud83d\udfe1 Pesada';
 
     var titulares = matchState.jugadoresEnCampo.slice();
     var enCampoIds = {};
@@ -3376,6 +3398,8 @@ function confirmarCambios() {
     document.getElementById('btnSalirMenu').style.display = '';
     document.getElementById('matchCommentary').style.display = '';
     document.getElementById('matchCommentary').innerHTML += '<p style="color:#38bdf8;">¡Comienza la segunda parte!</p>';
+    document.getElementById('gameSidebarNav').style.display = '';
+    document.getElementById('matchSidebar').style.display = 'none';
 
     var org = organizarPlantilla();
     var matchXiActual = [];
@@ -3393,6 +3417,71 @@ var matchEventos = null;
 var matchXi = null;
 var homeGoals = 0, awayGoals = 0, minute = 0;
 var matchIntervalId = null;
+
+function getOpcionesDropdown(tipo) {
+    if (tipo === 'formacion') {
+        return [
+            { value: '4-4-2 Estándar', label: '4-4-2 Estándar' },
+            { value: '4-3-3 Defensivo', label: '4-3-3 Defensivo' },
+            { value: '4-2-3-1', label: '4-2-3-1' },
+            { value: '3-4-3', label: '3-4-3' },
+            { value: '4-4-2 Diamante', label: '4-4-2 Diamante' },
+            { value: '4-1-4-1', label: '4-1-4-1' },
+            { value: '5-3-2 Defensivo', label: '5-3-2 Defensivo' }
+        ];
+    } else if (tipo === 'presion') {
+        return [
+            { value: 'suave', label: '🟢 Suave', color: '#22c55e' },
+            { value: 'pesada', label: '🟡 Pesada', color: '#eab308' },
+            { value: 'extrema', label: '🔴 Extrema', color: '#ef4444' }
+        ];
+    }
+    return [];
+}
+
+function abrirDropdownMatch(e, tipo) {
+    e.stopPropagation();
+    var dd = document.getElementById('tacticDropdown');
+    var list = document.getElementById('tacticDropdownList');
+    if (!dd || !list) return;
+
+    var sidebar = document.querySelector('.game-sidebar');
+    var sidebarRect = sidebar.getBoundingClientRect();
+    var el = e.currentTarget;
+    var elRect = el.getBoundingClientRect();
+
+    dd.style.left = (elRect.left - sidebarRect.left) + 'px';
+    dd.style.top = (elRect.bottom - sidebarRect.top + 2) + 'px';
+    dd.style.width = elRect.width + 'px';
+
+    var opciones = getOpcionesDropdown(tipo);
+    var currentVal = tipo === 'formacion' ? gameState.formacion || '4-4-2 Estándar' : gameState.estiloPresion || 'pesada';
+
+    list.innerHTML = '';
+    opciones.forEach(function(o) {
+        var item = document.createElement('div');
+        item.className = 'tactic-dropdown-item';
+        if (o.value === currentVal) item.classList.add('selected');
+        item.textContent = o.label;
+        if (o.color) item.style.color = o.color;
+        item.dataset.value = o.value;
+        item.onclick = function(ev) {
+            ev.stopPropagation();
+            if (tipo === 'formacion') {
+                gameState.formacion = this.dataset.value;
+                document.getElementById('matchFormacionDisplay').innerText = this.dataset.value;
+            } else if (tipo === 'presion') {
+                gameState.estiloPresion = this.dataset.value;
+                var labels = { suave: '🟢 Suave', pesada: '🟡 Pesada', extrema: '🔴 Extrema' };
+                document.getElementById('matchPresionDisplay').innerText = labels[this.dataset.value] || this.dataset.value;
+            }
+            cerrarDropdown();
+        };
+        list.appendChild(item);
+    });
+
+    dd.style.display = 'block';
+}
 
 function runMatchSimulation() {
     document.querySelectorAll('.game-tab-content').forEach(function (t) { return t.classList.remove('active'); });
@@ -3413,6 +3502,10 @@ function runMatchSimulation() {
 
     document.getElementById('panelClubInfo').style.display = 'none';
     document.getElementById('matchRatingPanel').style.display = 'flex';
+
+    document.getElementById('matchFormacionDisplay').innerText = gameState.formacion || '4-4-2 Estándar';
+    var presLabels = { suave: '🟢 Suave', pesada: '🟡 Pesada', extrema: '🔴 Extrema' };
+    document.getElementById('matchPresionDisplay').innerText = presLabels[gameState.estiloPresion] || '🟡 Pesada';
 
     var orgMatch = gameState.squad.length > 0 ? organizarPlantilla() : null;
     matchXi = (orgMatch && orgMatch.xi) ? orgMatch.xi.slice() : [];
@@ -3538,6 +3631,8 @@ function runMatchSimulation() {
 
         if (minute >= 90) {
             clearInterval(matchIntervalId);
+            document.getElementById('gameSidebarNav').style.display = '';
+            document.getElementById('matchSidebar').style.display = 'none';
             commentary.innerHTML += '<p style="color: #facc15; font-weight: bold; margin-top: 6px;">¡FINAL DEL PARTIDO! Resultado: ' + homeGoals + ' - ' + awayGoals + '</p>';
             var semanaIdx = (gameState.matchday || 1) - 1;
             if (gameState.calendario && gameState.calendario[semanaIdx]) {
@@ -3814,6 +3909,7 @@ function obtenerEstadoJuego() {
         palmaresClub: gameState.palmaresClub,
         estiloPresion: gameState.estiloPresion,
         formacion: gameState.formacion,
+        objetivoTemporada: gameState.objetivoTemporada,
         capitanId: gameState.capitanId,
         squad: gameState.squad.map(function (p) { return JSON.parse(JSON.stringify(p)); }),
         realSaveDate: new Date().toISOString()
@@ -3827,7 +3923,6 @@ function guardarPartida(slotId) {
     gameState.slotId = slotId;
     try {
         localStorage.setItem('retro_fm_slot_' + slotId, JSON.stringify(data));
-        showModal('GUARDADO', 'Partida guardada en el Slot ' + slotId + '.');
     } catch (e) {
         showModal('ERROR', 'No se pudo guardar la partida.');
     }
@@ -3871,6 +3966,7 @@ function cargarPartida(slotId) {
     gameState.palmaresClub = data.palmaresClub || {};
     gameState.estiloPresion = data.estiloPresion || 'pesada';
     gameState.formacion = data.formacion || '4-4-2 Estándar';
+    gameState.objetivoTemporada = data.objetivoTemporada || (gameState.team ? 'Evitar el descenso' : 'Evitar el descenso');
     gameState.capitanId = data.capitanId || null;
     gameState.squad = data.squad || [];
     gameState.slotId = slotId;
