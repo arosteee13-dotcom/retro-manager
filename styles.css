@@ -710,6 +710,36 @@ body {
     overflow-y: auto;
 }
 
+.mercado-subtab {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+.mercado-subtab.active {
+    display: flex;
+}
+
+.rival-tab {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
+}
+.rival-tab.active {
+    display: flex;
+}
+.rival-subtab {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+.rival-subtab.active {
+    display: flex;
+}
+
 .tactic-list-item.selected-pin {
     border: 2px solid #38bdf8;
     background: #1e293b;

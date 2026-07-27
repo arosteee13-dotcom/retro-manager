@@ -357,34 +357,50 @@
                         <div style="display: flex; flex-direction: column; gap: 4px; height: 100%;">
                             <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
                                 <span style="font-size: 13px; color:#38bdf8; font-weight:bold;" id="mercadoPresupuesto">15.0M€</span>
-                                <button class="btn-retro btn-sm" onclick="renderHistorial()" style="font-size:7px;padding:3px 6px;margin-left:auto;"><i class="fa-solid fa-clock-rotate-left"></i> Historial</button>
-                            </div>
-                            <div style="display:flex;gap:4px;flex-shrink:0;">
-                                <input type="text" id="mercadoBuscar" class="form-input" placeholder="🔍 Buscar jugador..." style="font-size:12px;padding:3px;flex:1;" oninput="renderMercado()">
-                            </div>
-                            <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
-                                <div class="filter-btn" id="filterPosBtn" onclick="abrirFiltroDropdown(event,'posicion')">
-                                    <span class="filter-btn-label">POSICIÓN</span>
-                                    <span id="filterPosDisplay" class="filter-btn-value">Todas</span>
-                                    <span class="filter-btn-arrow">▼</span>
-                                </div>
-                                <div class="filter-btn" id="filterRatingBtn" onclick="abrirFiltroDropdown(event,'rating')">
-                                    <span class="filter-btn-label">VALORACIÓN</span>
-                                    <span id="filterRatingDisplay" class="filter-btn-value">Todas</span>
-                                    <span class="filter-btn-arrow">▼</span>
-                                </div>
-                                <div class="filter-btn" id="filterEdadBtn" onclick="abrirFiltroDropdown(event,'edad')">
-                                    <span class="filter-btn-label">EDAD</span>
-                                    <span id="filterEdadDisplay" class="filter-btn-value">Cualquier edad</span>
-                                    <span class="filter-btn-arrow">▼</span>
-                                </div>
-                                <div class="filter-btn" id="filterNacBtn" onclick="abrirFiltroDropdown(event,'nacionalidad')">
-                                    <span class="filter-btn-label">PAÍS</span>
-                                    <span id="filterNacDisplay" class="filter-btn-value">🌍 Cualquier país</span>
-                                    <span class="filter-btn-arrow">▼</span>
+                                <div style="display:flex;gap:4px;margin-left:auto;">
+                                    <button class="btn-retro btn-sm active" onclick="switchMercadoSubTab(this,'mercado-buscar')" style="font-size:8px;padding:3px 6px;">
+                                        <i class="fa-solid fa-cart-shopping"></i> Buscar
+                                    </button>
+                                    <button class="btn-retro btn-sm" onclick="switchMercadoSubTab(this,'mercado-historial')" style="font-size:8px;padding:3px 6px;">
+                                        <i class="fa-solid fa-clock-rotate-left"></i> Historial
+                                    </button>
                                 </div>
                             </div>
-                            <div id="mercadoLista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+                            <div id="mercado-buscar" class="mercado-subtab" style="display:flex;flex-direction:column;gap:4px;flex:1;min-height:0;">
+                                <div style="display:flex;gap:4px;flex-shrink:0;">
+                                    <input type="text" id="mercadoBuscar" class="form-input" placeholder="🔍 Buscar jugador..." style="font-size:12px;padding:3px;flex:1;" oninput="renderMercado()">
+                                </div>
+                                <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
+                                    <div class="filter-btn" id="filterPosBtn" onclick="abrirFiltroDropdown(event,'posicion')">
+                                        <span class="filter-btn-label">POSICIÓN</span>
+                                        <span id="filterPosDisplay" class="filter-btn-value">Todas</span>
+                                        <span class="filter-btn-arrow">▼</span>
+                                    </div>
+                                    <div class="filter-btn" id="filterRatingBtn" onclick="abrirFiltroDropdown(event,'rating')">
+                                        <span class="filter-btn-label">VALORACIÓN</span>
+                                        <span id="filterRatingDisplay" class="filter-btn-value">Todas</span>
+                                        <span class="filter-btn-arrow">▼</span>
+                                    </div>
+                                    <div class="filter-btn" id="filterEdadBtn" onclick="abrirFiltroDropdown(event,'edad')">
+                                        <span class="filter-btn-label">EDAD</span>
+                                        <span id="filterEdadDisplay" class="filter-btn-value">Cualquier edad</span>
+                                        <span class="filter-btn-arrow">▼</span>
+                                    </div>
+                                    <div class="filter-btn" id="filterNacBtn" onclick="abrirFiltroDropdown(event,'nacionalidad')">
+                                        <span class="filter-btn-label">PAÍS</span>
+                                        <span id="filterNacDisplay" class="filter-btn-value">🌍 Cualquier país</span>
+                                        <span class="filter-btn-arrow">▼</span>
+                                    </div>
+                                </div>
+                                <div id="mercadoLista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+                            </div>
+                            <div id="mercado-historial" class="mercado-subtab" style="display:none;flex-direction:column;gap:4px;flex:1;min-height:0;">
+                                <div style="display:flex;gap:4px;flex-shrink:0;">
+                                    <button class="btn-retro btn-sm active" onclick="switchHistorialFiltro(this,'todos')" style="flex:1;font-size:8px;">TODOS</button>
+                                    <button class="btn-retro btn-sm" onclick="switchHistorialFiltro(this,'miliga')" style="flex:1;font-size:8px;">MI LIGA</button>
+                                </div>
+                                <div id="historialLista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+                            </div>
                             <div id="filterDropdown" class="tactic-dropdown" style="display:none;">
                                 <div id="filterDropdownList"></div>
                             </div>
@@ -448,11 +464,14 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn-retro green btn-sm" onclick="openSlotsModal('save')">
+                        <button class="btn-retro green btn-sm" id="btnGuardarPartida" onclick="openSlotsModal('save')">
                             <i class="fa-solid fa-floppy-disk"></i> GUARDAR PARTIDA
                         </button>
-                        <button class="btn-retro danger btn-sm" onclick="goToScreen('screen-menu')">
+                        <button class="btn-retro danger btn-sm" id="btnSalirMenu" onclick="goToScreen('screen-menu')">
                             <i class="fa-solid fa-right-from-bracket"></i> SALIR AL MENÚ
+                        </button>
+                        <button class="btn-retro green btn-sm" id="btnContinuarSegundaParte" onclick="confirmarCambios()" style="display:none;">
+                            <i class="fa-solid fa-forward"></i> CONTINUAR A LA 2ª PARTE
                         </button>
                     </div>
                 </div>
@@ -520,26 +539,40 @@
 </div>
 
 <div id="modalRival" class="retro-modal-overlay">
-    <div class="retro-modal" style="width: 95%; max-width: 550px; height: 380px;">
+    <div class="retro-modal" style="width: 95%; max-width: 600px; height: 420px;">
         <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #263342;padding-bottom:6px;">
-            <div>
-                <h3 id="rivalModalTitle" style="font-family:'Press Start 2P',cursive;font-size:11px;color:#38bdf8;">NOMBRE EQUIPO</h3>
-                <span id="rivalModalPosicion" style="font-size:13px;color:#94a3b8;"></span>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span id="rivalModalIcon" style="font-size:28px;">🏟️</span>
+                <div>
+                    <h3 id="rivalModalTitle" style="font-family:'Press Start 2P',cursive;font-size:12px;color:#38bdf8;">EQUIPO</h3>
+                    <span id="rivalModalPosicion" style="font-size:12px;color:#94a3b8;"></span>
+                </div>
             </div>
             <button class="btn-retro danger btn-sm" onclick="cerrarModalRival()">✖ CERRAR</button>
         </div>
-        <div id="rivalModalRatings" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;text-align:center;padding:4px 0;border-bottom:1px solid #1e293b;"></div>
-        <div id="rivalModalSquad" style="flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:2px;"></div>
-    </div>
-</div>
-
-<div id="modalHistorial" class="retro-modal-overlay">
-    <div class="retro-modal" style="width: 90%; max-width: 480px; height: 360px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #263342;padding-bottom:6px;">
-            <h3 style="font-family:'Press Start 2P',cursive;font-size:11px;color:#38bdf8;">📜 HISTORIAL DE TRASPASOS</h3>
-            <button class="btn-retro danger btn-sm" onclick="document.getElementById('modalHistorial').classList.remove('active')">✖ CERRAR</button>
+        <div style="display:flex;gap:4px;flex-shrink:0;margin-top:4px;">
+            <button class="btn-retro btn-sm active" onclick="switchRivalTab(this,'rival-general')" style="flex:1;font-size:9px;">📊 GENERAL</button>
+            <button class="btn-retro btn-sm" onclick="switchRivalTab(this,'rival-plantilla')" style="flex:1;font-size:9px;">👥 PLANTILLA</button>
+            <button class="btn-retro btn-sm" onclick="switchRivalTab(this,'rival-fichajes')" style="flex:1;font-size:9px;">💸 FICHAJES</button>
+            <button class="btn-retro btn-sm" onclick="switchRivalTab(this,'rival-historial')" style="flex:1;font-size:9px;">🏆 HISTORIAL</button>
         </div>
-        <div id="historialLista" style="flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:2px;"></div>
+        <div id="rival-general" class="rival-tab" style="flex:1;overflow-y:auto;padding:6px 0;">
+            <div id="rivalGeneralContent"></div>
+        </div>
+        <div id="rival-plantilla" class="rival-tab" style="display:none;flex-direction:column;flex:1;min-height:0;">
+            <div style="display:flex;gap:4px;flex-shrink:0;margin-bottom:2px;">
+                <button class="btn-retro btn-sm active" onclick="switchRivalSubTab(this,'rinfo')" style="flex:1;font-size:8px;">Información</button>
+                <button class="btn-retro btn-sm" onclick="switchRivalSubTab(this,'rstats')" style="flex:1;font-size:8px;">Rendimiento</button>
+            </div>
+            <div id="rinfo" class="rival-subtab" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;"></div>
+            <div id="rstats" class="rival-subtab" style="flex:1;overflow-y:auto;display:none;flex-direction:column;"></div>
+        </div>
+        <div id="rival-fichajes" class="rival-tab" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:4px 0;">
+            <div id="rivalFichajesContent"></div>
+        </div>
+        <div id="rival-historial" class="rival-tab" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:4px 0;">
+            <div id="rivalHistorialContent"></div>
+        </div>
     </div>
 </div>
 

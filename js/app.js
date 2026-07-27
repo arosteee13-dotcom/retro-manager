@@ -609,20 +609,31 @@ function generarPlantillaSimulada(nombreEquipo, pais, ratingEquipo) {
     return squad;
 }
 
-function abrirPlantillaRival(nombreEquipo) {
-    var elTitle = document.getElementById('rivalModalTitle');
-    var elPos = document.getElementById('rivalModalPosicion');
-    var elRatings = document.getElementById('rivalModalRatings');
-    var elSquad = document.getElementById('rivalModalSquad');
-    if (!elTitle || !elPos || !elRatings || !elSquad) return;
+function generarPalmaresClub(rating) {
+    var ligas = rating >= 85 ? 3 + Math.floor(Math.random() * 4) : rating >= 75 ? 1 + Math.floor(Math.random() * 3) : Math.floor(Math.random() * 2);
+    var copas = rating >= 80 ? 2 + Math.floor(Math.random() * 3) : rating >= 70 ? 1 + Math.floor(Math.random() * 2) : Math.floor(Math.random());
+    var champions = rating >= 88 ? 1 + Math.floor(Math.random() * 2) : rating >= 82 ? Math.floor(Math.random() * 2) : 0;
+    return { ligas: ligas, copas: copas, champions: champions };
+}
+function generarHistorialPosiciones(rating) {
+    var temp = [];
+    var base = Math.max(1, 20 - Math.round(rating / 4.5));
+    for (var i = 0; i < 5; i++) {
+        var v = Math.floor(Math.random() * 5) - 2;
+        temp.push(Math.max(1, Math.min(20, base + v)));
+    }
+    return temp;
+}
 
+function abrirPlantillaRival(nombreEquipo) {
     var equiposDB = Database.getTeams(gameState.country, gameState.league);
     var equipoData = null;
     for (var i = 0; i < equiposDB.length; i++) {
         if (equiposDB[i].name === nombreEquipo) { equipoData = equiposDB[i]; break; }
     }
 
-    elTitle.innerText = nombreEquipo.toUpperCase();
+    document.getElementById('rivalModalIcon').textContent = '🏟️';
+    document.getElementById('rivalModalTitle').innerText = nombreEquipo.toUpperCase();
 
     var tabla = [];
     if (gameState.fixture && gameState.fixture.length > 0) {
@@ -636,28 +647,35 @@ function abrirPlantillaRival(nombreEquipo) {
         if (tabla[i].nombre === nombreEquipo) { pos = i + 1; pts = tabla[i].pts; break; }
     }
     var formacionRival = _formacionesEquipos[nombreEquipo] || '—';
-    elPos.innerHTML = (pos > 0 ? pos + 'ª posición · ' + pts + ' pts' : '') + ' | Esquema: ' + formacionRival;
+    document.getElementById('rivalModalPosicion').innerHTML = (pos > 0 ? pos + 'ª (' + pts + ' pts)' : '') + ' · ' + formacionRival;
 
     var rating = equipoData ? (equipoData.rating || 75) : 75;
     if (nombreEquipo === gameState.team) rating = gameState.rating;
+    var squad = obtenerSquadEquipo(nombreEquipo);
 
-    var squad = equipoData && equipoData.squad && equipoData.squad.length > 0
-        ? equipoData.squad
-        : generarPlantillaSimulada(nombreEquipo, gameState.country, rating);
-
+    // GENERAL
+    var genHtml = '';
+    if (equipoData) {
+        genHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;color:#e2e8f0;">' +
+            '<div class="stat-row"><span>Estadio</span><span class="stat-val">' + (equipoData.stadium || '—') + '</span></div>' +
+            '<div class="stat-row"><span>Capacidad</span><span class="stat-val">' + ((equipoData.capacity || 0).toLocaleString()) + '</span></div>' +
+            '<div class="stat-row"><span>Presupuesto</span><span class="stat-val" style="color:#facc15;">' + (equipoData.budget || '—') + '</span></div>' +
+            '<div class="stat-row"><span>Objetivo</span><span class="stat-val" style="color:#38bdf8;">' + (equipoData.target || '—') + '</span></div>' +
+            '</div>';
+    } else {
+        genHtml += '<div style="color:#94a3b8;font-size:12px;padding:4px;">No hay datos disponibles.</div>';
+    }
     var calc = calcularRatingEquipo(squad);
-    elRatings.innerHTML =
-        '<div><span style="font-size:10px;color:#94a3b8;">GLO</span><br><span style="font-size:18px;color:#38bdf8;">' + calc.glo + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">POR</span><br><span style="font-size:18px;color:#7c3aed;">' + calc.por + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">DEF</span><br><span style="font-size:18px;color:#b91c1c;">' + calc.def + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">MED</span><br><span style="font-size:18px;color:#ea580c;">' + calc.med + '</span></div>' +
-        '<div><span style="font-size:10px;color:#94a3b8;">ATA</span><br><span style="font-size:18px;color:#15803d;">' + calc.ata + '</span></div>';
+    genHtml += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;text-align:center;padding:6px 0;margin-top:4px;border-top:1px solid #1e293b;">' +
+        '<div><span style="font-size:10px;color:#94a3b8;">GLO</span><br><span style="font-size:22px;color:#38bdf8;">' + calc.glo + '</span></div>' +
+        '<div><span style="font-size:10px;color:#94a3b8;">POR</span><br><span style="font-size:22px;color:#7c3aed;">' + calc.por + '</span></div>' +
+        '<div><span style="font-size:10px;color:#94a3b8;">DEF</span><br><span style="font-size:22px;color:#b91c1c;">' + calc.def + '</span></div>' +
+        '<div><span style="font-size:10px;color:#94a3b8;">MED</span><br><span style="font-size:22px;color:#ea580c;">' + calc.med + '</span></div>' +
+        '<div><span style="font-size:10px;color:#94a3b8;">ATA</span><br><span style="font-size:22px;color:#15803d;">' + calc.ata + '</span></div>' +
+        '</div>';
+    document.getElementById('rivalGeneralContent').innerHTML = genHtml;
 
-    var htmlSubTabs = '' +
-        '<div style="display:flex;gap:4px;margin-bottom:4px;">' +
-        '<button class="btn-retro btn-sm" onclick="switchRivalSubTab(this,\'rinfo\')" style="flex:1;">Info</button>' +
-        '<button class="btn-retro btn-sm" onclick="switchRivalSubTab(this,\'rstats\')" style="flex:1;">Rendimiento</button></div>';
-
+    // PLANTILLA
     var htmlInfo = '<table class="squad-table" style="font-size:12px;"><thead><tr>' +
         '<th>#</th><th>Pos</th><th>Jugador</th><th>Nac</th><th>Edad</th><th>Med</th><th>Est</th><th>Valor</th>' +
         '</tr></thead><tbody>';
@@ -692,11 +710,10 @@ function abrirPlantillaRival(nombreEquipo) {
     });
     htmlStats += '</tbody></table>';
 
-    elSquad.innerHTML = htmlSubTabs +
-        '<div id="rinfo" class="squad-subtab" style="display:flex;flex-direction:column;flex:1;">' + htmlInfo + '</div>' +
-        '<div id="rstats" class="squad-subtab" style="display:none;flex-direction:column;flex:1;">' + htmlStats + '</div>';
+    document.getElementById('rinfo').innerHTML = htmlInfo;
+    document.getElementById('rstats').innerHTML = htmlStats;
 
-    elSquad.querySelectorAll('.rival-player-row').forEach(function(el){
+    document.querySelectorAll('#modalRival .rival-player-row').forEach(function(el){
         el.onclick = function(){
             var pid = parseInt(this.dataset.rid);
             for (var j = 0; j < squad.length; j++) {
@@ -705,13 +722,79 @@ function abrirPlantillaRival(nombreEquipo) {
         };
     });
 
+    // FICHAJES
+    var h = gameState.historialTraspasos || [];
+    var fichajesClub = [];
+    h.forEach(function(t) {
+        if (t.desde === nombreEquipo || t.para === nombreEquipo) fichajesClub.push(t);
+    });
+    var fichHtml = '';
+    if (fichajesClub.length === 0) {
+        fichHtml = '<div style="color:#64748b;text-align:center;padding:10px;font-size:12px;">No hay movimientos registrados.</div>';
+    } else {
+        fichHtml = '<div style="font-size:11px;color:#94a3b8;padding:2px 4px;border-bottom:1px solid #1e293b;">MOVIMIENTOS (' + fichajesClub.length + ')</div>';
+        fichajesClub.forEach(function(t) {
+            var icono = t.tipo === 'compra' ? '💰' : t.tipo === 'venta' ? '💵' : '🔄';
+            var color = t.tipo === 'compra' ? '#22c55e' : t.tipo === 'venta' ? '#eab308' : '#38bdf8';
+            fichHtml += '<div class="tactic-list-item" style="cursor:default;padding:3px 6px;">' +
+                '<span style="font-size:10px;color:#64748b;min-width:36px;">' + t.fecha + '</span>' +
+                '<span style="font-size:12px;">' + icono + ' ' + t.jugador + '</span>' +
+                '<span style="font-size:10px;color:#94a3b8;flex:1;text-align:right;">' + t.desde + ' → <span style="color:' + color + ';">' + t.para + '</span></span>' +
+                '<span style="font-size:10px;color:#eab308;min-width:44px;text-align:right;">' + t.precio.toFixed(1) + 'M€</span></div>';
+        });
+    }
+    document.getElementById('rivalFichajesContent').innerHTML = fichHtml;
+
+    // HISTORIAL
+    var palmares = generarPalmaresClub(rating);
+    var historico = generarHistorialPosiciones(rating);
+    var tempActual = new Date().getFullYear();
+    var histHtml = '' +
+        '<div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin-bottom:4px;">🏆 PALMARÉS</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:4px;">' +
+        '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
+        '<span style="font-size:20px;">🏆</span><br><span style="font-size:18px;color:#facc15;font-weight:bold;">' + palmares.ligas + '</span><br><span style="font-size:9px;color:#94a3b8;">Ligas</span></div>' +
+        '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
+        '<span style="font-size:20px;">🏅</span><br><span style="font-size:18px;color:#38bdf8;font-weight:bold;">' + palmares.copas + '</span><br><span style="font-size:9px;color:#94a3b8;">Copas</span></div>' +
+        '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 10px;text-align:center;min-width:70px;">' +
+        '<span style="font-size:20px;">⭐</span><br><span style="font-size:18px;color:#6ee7b7;font-weight:bold;">' + palmares.champions + '</span><br><span style="font-size:9px;color:#94a3b8;">Champions</span></div>' +
+        '</div>' +
+        '<div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin:4px 0;">📊 HISTÓRICO LIGA</div>' +
+        '<div style="display:flex;gap:4px;padding:4px;justify-content:center;">';
+    for (var t = 0; t < 5; t++) {
+        var anio = tempActual - 5 + t;
+        var p = historico[t];
+        var col = p <= 4 ? '#49CB2B' : p <= 8 ? '#38bdf8' : p <= 14 ? '#bcbcbc' : '#ED3B46';
+        histHtml += '<div style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:4px 6px;text-align:center;min-width:40px;">' +
+            '<span style="font-size:8px;color:#64748b;">' + anio + '</span><br>' +
+            '<span style="font-size:16px;color:' + col + ';font-weight:bold;">' + p + 'º</span></div>';
+    }
+    histHtml += '</div>';
+    document.getElementById('rivalHistorialContent').innerHTML = histHtml;
+
+    document.querySelectorAll('#modalRival .rival-tab').forEach(function(t){ t.style.display = 'none'; });
+    document.getElementById('rival-general').style.display = 'flex';
+    document.querySelectorAll('#modalRival > div > .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
+    var firstTab = document.querySelector('#modalRival .btn-retro.btn-sm[onclick*="rival-general"]');
+    if (firstTab) firstTab.classList.add('active');
+    document.querySelectorAll('#rival-plantilla .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
+    var firstSub = document.querySelector('#rival-plantilla .btn-retro.btn-sm[onclick*="rinfo"]');
+    if (firstSub) firstSub.classList.add('active');
+
     document.getElementById('modalRival').classList.add('active');
 }
 
-function switchRivalSubTab(btn, tabId) {
-    document.querySelectorAll('#modalRival .squad-subtab').forEach(function(t){ t.style.display = 'none'; });
+function switchRivalTab(btn, tabId) {
+    document.querySelectorAll('#modalRival .rival-tab').forEach(function(t){ t.style.display = 'none'; });
     document.getElementById(tabId).style.display = 'flex';
     document.querySelectorAll('#modalRival .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+}
+
+function switchRivalSubTab(btn, tabId) {
+    document.querySelectorAll('#modalRival .rival-subtab').forEach(function(t){ t.style.display = 'none'; });
+    document.getElementById(tabId).style.display = 'flex';
+    document.querySelectorAll('#rival-plantilla .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
 }
 
@@ -909,23 +992,40 @@ function renderHistorial() {
     var lista = document.getElementById('historialLista');
     if (!lista) return;
     var h = gameState.historialTraspasos || [];
-    if (h.length === 0) {
-        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:13px;">No hay movimientos en el mercado todavía.</div>';
-    } else {
-        var html = '';
-        for (var i = 0; i < h.length; i++) {
-            var t = h[i];
-            var icono = t.tipo === 'compra' ? '💰' : '💵';
-            var color = t.tipo === 'compra' ? '#22c55e' : '#eab308';
-            html += '<div class="tactic-list-item" style="cursor:default;">' +
-                '<span style="font-size:10px;color:#64748b;min-width:40px;">' + t.fecha + '</span>' +
-                '<span style="font-size:12px;">' + icono + ' ' + t.jugador + '</span>' +
-                '<span style="font-size:10px;color:#94a3b8;flex:1;text-align:right;">' + t.desde + ' → <span style="color:' + color + ';">' + t.para + '</span></span>' +
-                '<span style="font-size:10px;color:#eab308;min-width:44px;text-align:right;">' + t.precio.toFixed(1) + 'M€</span></div>';
-        }
-        lista.innerHTML = html;
+
+    var filtrados = h;
+    if (_historialFiltro === 'miliga') {
+        var equiposLiga = Database.getTeams(gameState.country, gameState.league);
+        var nombresLiga = {};
+        equiposLiga.forEach(function(e) { nombresLiga[e.name] = true; });
+        filtrados = h.filter(function(t) {
+            return nombresLiga[t.desde] || nombresLiga[t.para];
+        });
     }
-    document.getElementById('modalHistorial').classList.add('active');
+
+    if (filtrados.length === 0) {
+        lista.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;font-size:12px;">No hay movimientos en el mercado.</div>';
+        return;
+    }
+
+    var html = '<div style="font-size:11px;color:#38bdf8;padding:4px 2px;border-bottom:1px solid #1e293b;">HISTORIAL (' + filtrados.length + ')</div>';
+    filtrados.forEach(function(t) {
+        var icono = t.tipo === 'compra' ? '💰' : t.tipo === 'venta' ? '💵' : '🔄';
+        var color = t.tipo === 'compra' ? '#22c55e' : t.tipo === 'venta' ? '#eab308' : '#38bdf8';
+        html += '<div class="tactic-list-item" style="cursor:default;flex-wrap:wrap;padding:4px 6px;">' +
+            '<div style="display:flex;align-items:center;gap:4px;width:100%;">' +
+            '<span style="font-size:10px;color:#64748b;min-width:36px;">' + t.fecha + '</span>' +
+            '<span style="font-size:13px;">' + icono + '</span>' +
+            '<span style="font-size:12px;font-weight:bold;flex:1;">' + t.jugador + '</span>' +
+            (t.pos ? '<span class="pos-badge" style="font-size:9px;padding:1px 4px;display:inline-block;">' + t.pos + '</span> ' : '') +
+            (t.rating ? '<span style="font-size:10px;color:#6ee7b7;min-width:18px;text-align:center;">' + t.rating + '</span>' : '') +
+            '</div>' +
+            '<div style="font-size:10px;color:#94a3b8;padding:1px 0 0 50px;width:100%;">' +
+            t.desde + ' <span style="color:' + color + ';">→</span> ' + t.para +
+            ' · <span style="color:#eab308;">' + t.precio.toFixed(1) + 'M€</span></div>' +
+            '</div>';
+    });
+    lista.innerHTML = html;
 }
 
 function normalizeStr(s) {
@@ -1188,7 +1288,9 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
         jugador: jugador.name,
         desde: equipoOrigen,
         para: gameState.team,
-        precio: precio
+        precio: precio,
+        pos: jugador.pos,
+        rating: jugador.rating
     });
 
     enviarMensaje('Secretaría Técnica', '✍️ Fichaje completado',
@@ -1202,7 +1304,10 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
 function aceptarOferta(jugadorId, precio) {
     for (var i = 0; i < gameState.squad.length; i++) {
         if (gameState.squad[i].id === jugadorId) {
-            var jugadorName = gameState.squad[i].name;
+            var p = gameState.squad[i];
+            var jugadorName = p.name;
+            var jugadorPos = p.pos;
+            var jugadorRating = p.rating;
             gameState.budget += precio;
             gameState.squad.splice(i, 1);
             if (!gameState.historialTraspasos) gameState.historialTraspasos = [];
@@ -1212,7 +1317,9 @@ function aceptarOferta(jugadorId, precio) {
                 jugador: jugadorName,
                 desde: gameState.team,
                 para: 'CPU',
-                precio: precio
+                precio: precio,
+                pos: jugadorPos,
+                rating: jugadorRating
             });
             enviarMensaje('Dirección Deportiva', '💰 Traspaso cerrado',
                 'Se ha aceptado la oferta por ' + jugadorName + '. ' + formatearPresupuesto(precio) + ' ingresados en la cuenta del club.');
@@ -1227,6 +1334,102 @@ function rechazarOferta(jugadorId) {
     enviarMensaje('Dirección Deportiva', '❌ Oferta rechazada',
         'Se ha rechazado la oferta por el jugador.');
     renderInbox();
+}
+
+function simularMercadoCPU() {
+    if (Object.keys(_presupuestosCPU).length === 0) {
+        var equipos = Database.getTeams(gameState.country, gameState.league);
+        equipos.forEach(function(eq) {
+            if (eq.name !== gameState.team) {
+                _presupuestosCPU[eq.name] = parsearPresupuesto(eq.budget || '2.0M€');
+            }
+        });
+    }
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    equipos.forEach(function(comprador) {
+        if (comprador.name === gameState.team) return;
+        if (Math.random() > 0.25) return;
+
+        var presupuesto = _presupuestosCPU[comprador.name] || 0;
+        if (presupuesto < 1) return;
+
+        var squad = obtenerSquadEquipo(comprador.name);
+        if (!squad || squad.length < 11) return;
+
+        var conteo = {}, maxRating = {};
+        var todasPos = ['PO','DFC','LD','LI','CAI','CAD','MCD','MC','MCO','MI','MD','EI','ED','DC'];
+        todasPos.forEach(function(p) { conteo[p] = 0; maxRating[p] = 0; });
+        squad.forEach(function(j) {
+            if (conteo[j.pos] !== undefined) {
+                conteo[j.pos]++;
+                if (j.rating > maxRating[j.pos]) maxRating[j.pos] = j.rating;
+            }
+        });
+
+        var grupos = { PO: ['PO'], DEF: ['DFC','LI','LD','CAI','CAD'], MC: ['MCD','MC','MCO','MI','MD'], ATA: ['EI','ED','DC'] };
+        var necesidades = [];
+        for (var g in grupos) {
+            var total = 0, mejor = 0;
+            grupos[g].forEach(function(p) {
+                total += conteo[p] || 0;
+                if ((maxRating[p] || 0) > mejor) mejor = maxRating[p];
+            });
+            var min = g === 'PO' ? 2 : g === 'DEF' ? 4 : g === 'MC' ? 4 : 3;
+            if (total < min || mejor < (comprador.rating || 75) - 8) {
+                necesidades.push(g);
+            }
+        }
+        if (necesidades.length === 0) return;
+
+        var grupoNeeded = necesidades[Math.floor(Math.random() * necesidades.length)];
+        var posBuscar = grupos[grupoNeeded];
+
+        var candidatos = [];
+        equipos.forEach(function(vendedor) {
+            if (vendedor.name === comprador.name) return;
+            var sq = obtenerSquadEquipo(vendedor.name);
+            if (!sq) return;
+            sq.forEach(function(j) {
+                if (posBuscar.indexOf(j.pos) !== -1) {
+                    var precio = calcularPrecio(j.rating);
+                    if (precio <= presupuesto) {
+                        candidatos.push({ jugador: j, equipo: vendedor.name, precio: precio });
+                    }
+                }
+            });
+        });
+        if (candidatos.length === 0) return;
+        candidatos.sort(function(a, b) { return b.jugador.rating - a.jugador.rating; });
+        var target = candidatos[0];
+
+        var squadVendedor = _cachedSquads[target.equipo];
+        if (!squadVendedor) return;
+        var idx = -1;
+        for (var i = 0; i < squadVendedor.length; i++) {
+            if (squadVendedor[i].id === target.jugador.id) { idx = i; break; }
+        }
+        if (idx === -1) return;
+
+        var jugador = squadVendedor.splice(idx, 1)[0];
+        _presupuestosCPU[comprador.name] = (_presupuestosCPU[comprador.name] || 0) - target.precio;
+        _presupuestosCPU[target.equipo] = (_presupuestosCPU[target.equipo] || 0) + target.precio;
+
+        jugador.grupo = null;
+        squad.push(jugador);
+        _cachedSquads[comprador.name] = squad;
+
+        if (!gameState.historialTraspasos) gameState.historialTraspasos = [];
+        gameState.historialTraspasos.unshift({
+            fecha: 'J' + (gameState.matchday || 1),
+            tipo: 'traspaso_cpu',
+            jugador: jugador.name,
+            desde: target.equipo,
+            para: comprador.name,
+            precio: target.precio,
+            pos: jugador.pos,
+            rating: jugador.rating
+        });
+    });
 }
 
 function generarOfertasCPU() {
@@ -1612,11 +1815,23 @@ function extraerXI(squad, equipoNombre) {
 
 function aplicarLesiones(xi, equipoNombre) {
     if (!xi) return;
+    var presMult = equipoNombre === gameState.team
+        ? (gameState.estiloPresion === 'extrema' ? 1.5 : gameState.estiloPresion === 'suave' ? 0.5 : 1.0)
+        : 1.0;
     for (var i = 0; i < xi.length; i++) {
         var p = xi[i];
         var stam = parseInt(p.stamina) || 100;
-        if (stam < 60 && Math.random() < 0.15) {
-            p.lesionSemanas = Math.floor(Math.random() * 3) + 1;
+        var prob = 0;
+        if (stam > 40) prob = 0.001;
+        else if (stam >= 20) prob = 0.015;
+        else prob = 0.04;
+        prob *= presMult;
+        if (Math.random() < prob) {
+            var r = Math.random();
+            if (r < 0.70) p.lesionSemanas = 1;
+            else if (r < 0.90) p.lesionSemanas = 2;
+            else if (r < 0.98) p.lesionSemanas = 3;
+            else p.lesionSemanas = 4 + Math.floor(Math.random() * 3);
             if (equipoNombre === gameState.team) {
                 enviarMensaje('Servicio Médico', 'Parte de Lesión',
                     p.name + ' ha sufrido una lesión durante el partido. El tiempo estimado de baja es de ' + p.lesionSemanas + ' semana' + (p.lesionSemanas > 1 ? 's' : '') + '.');
@@ -1945,6 +2160,25 @@ function renderClasificacion() {
 }
 
 var _cachedSquads = {};
+var _presupuestosCPU = {};
+
+function switchMercadoSubTab(btn, tabId) {
+    document.querySelectorAll('#tab-mercado .mercado-subtab').forEach(function(t){ t.style.display = 'none'; });
+    document.getElementById(tabId).style.display = 'flex';
+    document.querySelectorAll('#tab-mercado .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    if (tabId === 'mercado-buscar') renderMercado();
+    if (tabId === 'mercado-historial') renderHistorial();
+}
+
+var _historialFiltro = 'todos';
+
+function switchHistorialFiltro(btn, filtro) {
+    _historialFiltro = filtro;
+    document.querySelectorAll('#mercado-historial .btn-retro.btn-sm').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    renderHistorial();
+}
 
 function switchCompSubTab(btn, tabId) {
     document.querySelectorAll('#tab-competiciones .comp-subtab').forEach(function(t){ t.style.display = 'none'; });
@@ -2373,6 +2607,9 @@ function mostrarMenuDescanso(matchState) {
     var menu = document.getElementById('halfTimeMenu');
     menu.style.display = 'flex';
     document.getElementById('subsRestantes').innerText = matchState.sustitucionesRestantes;
+    document.getElementById('btnContinuarSegundaParte').style.display = '';
+    document.getElementById('btnGuardarPartida').style.display = 'none';
+    document.getElementById('btnSalirMenu').style.display = 'none';
 
     var titulares = matchState.jugadoresEnCampo.slice();
     var enCampoIds = {};
@@ -2477,6 +2714,9 @@ function onClickJugador(jugadorId, grupo) {
 function confirmarCambios() {
     _sel1 = null; _sel2 = null;
     document.getElementById('halfTimeMenu').style.display = 'none';
+    document.getElementById('btnContinuarSegundaParte').style.display = 'none';
+    document.getElementById('btnGuardarPartida').style.display = '';
+    document.getElementById('btnSalirMenu').style.display = '';
     document.getElementById('matchCommentary').style.display = '';
     document.getElementById('matchCommentary').innerHTML += '<p style="color:#38bdf8;">¡Comienza la segunda parte!</p>';
 
@@ -2510,6 +2750,9 @@ function runMatchSimulation() {
     commentary.style.display = '';
     document.getElementById('halfTimeMenu').style.display = 'none';
     document.getElementById('btnContinueMatch').style.display = 'none';
+    document.getElementById('btnContinuarSegundaParte').style.display = 'none';
+    document.getElementById('btnGuardarPartida').style.display = '';
+    document.getElementById('btnSalirMenu').style.display = '';
 
     document.getElementById('panelClubInfo').style.display = 'none';
     document.getElementById('matchRatingPanel').style.display = 'flex';
@@ -2593,6 +2836,21 @@ function runMatchSimulation() {
             stam = Math.max(0, stam - desgaste);
             p.stamina = stam + '%';
         });
+
+        if (Math.random() < 0.003) {
+            var candidatos = [];
+            matchState.jugadoresEnCampo.forEach(function(p) {
+                var stam = parseInt(p.stamina) || 100;
+                if (stam < 25) candidatos.push(p);
+            });
+            if (candidatos.length > 0) {
+                var lesionado = candidatos[Math.floor(Math.random() * candidatos.length)];
+                lesionado.lesionSemanas = 1;
+                matchEventos.push({ tipo: 'lesion', equipo: 'L', jugador: { id: lesionado.id, nombre: lesionado.name, dorsal: lesionado.dorsal } });
+                commentary.innerHTML += '<p style="color:#ef4444;">' + lesionado.name + ' se ha lesionado en una jugada (' + minute + "').</p>";
+                if (matchXi) renderMatchNotas(matchXi, matchEventos, awayGoals, false);
+            }
+        }
 
         if (presion === 'extrema' && Math.random() < 0.08) {
             matchEventos.push({ tipo: 'ta', equipo: Math.random() > 0.5 ? 'L' : 'V', jugador: null });
@@ -2757,6 +3015,7 @@ function nextMatch() {
     if (gameState.fixture && gameState.fixture[jornadaAnterior]) {
         simularJornadaCPU(jornadaAnterior);
     }
+    simularMercadoCPU();
     generarOfertasCPU();
     gameState.matchday = (gameState.matchday || 1) + 1;
 
@@ -2838,6 +3097,7 @@ function obtenerEstadoJuego() {
         fixtureGenerado: gameState.fixtureGenerado,
         cachedSquads: _cachedSquads,
         fixtureRatings: _fixtureRatings,
+        presupuestosCPU: _presupuestosCPU,
         mensajes: gameState.mensajes,
         ultimoIdMensaje: gameState.ultimoIdMensaje,
         historialTraspasos: gameState.historialTraspasos,
@@ -2884,6 +3144,7 @@ function cargarPartida(slotId) {
     gameState.fixtureGenerado = data.fixtureGenerado || false;
     if (data.cachedSquads) { for (var k in data.cachedSquads) { _cachedSquads[k] = data.cachedSquads[k]; } }
     if (data.fixtureRatings) { for (var k in data.fixtureRatings) { _fixtureRatings[k] = data.fixtureRatings[k]; } }
+    if (data.presupuestosCPU) { for (var k in data.presupuestosCPU) { _presupuestosCPU[k] = data.presupuestosCPU[k]; } }
     gameState.mensajes = data.mensajes || [];
     gameState.ultimoIdMensaje = data.ultimoIdMensaje || 0;
     gameState.historialTraspasos = data.historialTraspasos || [];
