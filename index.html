@@ -249,25 +249,29 @@
                     </div>
 
                     <div id="tab-tacticas" class="game-tab-content">
-                        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-bottom: 4px;">
-                            <span style="font-size: 13px; color:#94a3b8; min-width: 70px;">Formación:</span>
-                                    <select id="tacticFormation" class="form-input" style="font-size: 14px; padding: 3px; flex: 1;" onchange="onFormationChange()">
-                                        <option>4-4-2 Estándar</option>
-                                        <option>4-3-3 Defensivo</option>
-                                        <option>4-2-3-1</option>
-                                        <option>3-4-3</option>
-                                        <option>4-4-2 Diamante</option>
-                                        <option>4-1-4-1</option>
-                                        <option>5-3-2 Defensivo</option>
-                                    </select>
-                            <button class="btn-retro btn-sm" onclick="onFormationChange()" style="font-size: 7px; padding: 4px 6px;"><i class="fa-solid fa-arrows-rotate"></i> Auto</button>
-                            <div id="teamRatingDisplay" style="background:#111823;border:1px solid #263342;border-radius:3px;padding:4px;flex-shrink:0;min-width:180px;"></div>
+                        <div style="display:flex;gap:4px;align-items:stretch;flex-shrink:0;padding-bottom:2px;">
+                            <div class="tactic-card" onclick="abrirDropdown(event,'capitan')">
+                                <div class="tactic-card-label"><i class="fa-solid fa-star"></i> CAPITÁN</div>
+                                <div id="capitanDisplay" class="tactic-card-value">-- Sin capitán</div>
+                            </div>
+                            <div class="tactic-card" onclick="abrirDropdown(event,'presion')">
+                                <div class="tactic-card-label"><i class="fa-solid fa-bolt"></i> PRESIÓN</div>
+                                <div id="presionDisplay" class="tactic-card-value" style="color:#eab308;">Pesada</div>
+                            </div>
+                            <div class="tactic-card" onclick="abrirDropdown(event,'formacion')">
+                                <div class="tactic-card-label"><i class="fa-regular fa-futbol"></i> FORMACIÓN</div>
+                                <div id="formacionDisplay" class="tactic-card-value">4-4-2 Estándar</div>
+                            </div>
+                            <div id="teamRatingDisplay" style="background:#111823;border:1px solid #263342;border-radius:6px;padding:3px 6px;width:157px;height:43px;flex:none;font-size:10px;display:flex;align-items:center;justify-content:center;"></div>
                         </div>
                         <div style="display: flex; gap: 6px; flex: 1; min-height: 0;">
                             <div id="tacticXIList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; background:#0f141c; border:1px solid #222d3d; border-radius:3px; padding:4px;"></div>
                             <div style="flex: 1; display: flex; flex-direction: column; gap: 2px; min-height: 0; background:#0f141c; border:1px solid #222d3d; border-radius:3px; padding:4px;">
                                 <div id="tacticRightList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"></div>
                             </div>
+                        </div>
+                        <div id="tacticDropdown" class="tactic-dropdown" style="display:none;">
+                            <div id="tacticDropdownList"></div>
                         </div>
                     </div>
 
@@ -317,6 +321,15 @@
                             <button id="btnContinueMatch" class="btn-retro green" onclick="nextMatch()" style="display: none; padding: 10px 6px;">
                                 <i class="fa-solid fa-forward"></i> SIGUIENTE PARTIDO
                             </button>
+                            <div id="halfTimeMenu" style="display:none;flex-direction:column;gap:4px;height:100%;">
+                                <div style="font-size:14px;color:#38bdf8;text-align:center;padding:2px;"><i class="fa-solid fa-arrows-rotate"></i> DESCANSO - SUSTITUCIONES</div>
+                                <div style="font-size:11px;color:#94a3b8;text-align:center;">Cambios restantes: <span id="subsRestantes" style="color:#6ee7b7;">5</span></div>
+                                <div style="display:flex;gap:6px;flex:1;min-height:0;">
+                                    <div id="colTitulares" class="sub-card" style="flex:1;display:flex;flex-direction:column;gap:2px;overflow-y:auto;"></div>
+                                    <div id="colSuplentes" class="sub-card" style="flex:1;display:flex;flex-direction:column;gap:2px;overflow-y:auto;"></div>
+                                </div>
+                                <button class="btn-retro green" onclick="confirmarCambios()" style="padding:8px;">CONTINUAR A LA 2ª PARTE</button>
+                            </div>
                         </div>
                     </div>
 
@@ -398,7 +411,7 @@
                 </div>
 
                 <div id="gameActionPanel" class="game-action-panel">
-                    <div>
+                    <div id="panelClubInfo">
                         <div class="stat-row">
                             <span>Club:</span>
                             <span id="gameTeamShort" class="stat-val" style="color:#6ee7b7;">R. Madrid</span>
@@ -411,6 +424,13 @@
                             <span>Fondos:</span>
                             <span id="gameBudget" class="stat-val" style="color:#facc15;">15.0M€</span>
                         </div>
+                    </div>
+
+                    <div id="matchRatingPanel" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:2px 0;">
+                        <div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;margin-bottom:4px;flex-shrink:0;">
+                            <i class="fa-solid fa-chart-simple"></i> RENDIMIENTO / NOTAS
+                        </div>
+                        <div id="matchNotasLista" style="flex:1;overflow-y:auto;"></div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 8px;">
