@@ -195,6 +195,20 @@ function flagEmoji(code) {
     return flags[code] || '';
 }
 
+var _nombresPaises = {
+    es: 'España', fr: 'Francia', br: 'Brasil', ar: 'Argentina', it: 'Italia',
+    nl: 'Países Bajos', gb: 'Reino Unido', eng: 'Inglaterra', de: 'Alemania',
+    pt: 'Portugal', pl: 'Polonia', hu: 'Hungría', dk: 'Dinamarca', uy: 'Uruguay',
+    se: 'Suecia', be: 'Bélgica', at: 'Austria', ch: 'Suiza', jp: 'Japón',
+    kr: 'Corea del Sur', ng: 'Nigeria', ma: 'Marruecos', sn: 'Senegal',
+    ci: 'Costa de Marfil', cm: 'Camerún', gh: 'Ghana', gw: 'Guinea-Bissau',
+    ua: 'Ucrania', tr: 'Turquía', si: 'Eslovenia', sk: 'Eslovaquia',
+    no: 'Noruega', ro: 'Rumanía', gn: 'Guinea', gq: 'Guinea Ecuatorial',
+    my: 'Malasia', fi: 'Finlandia', ml: 'Mali', rs: 'Serbia', dz: 'Argelia',
+    do: 'República Dominicana', us: 'Estados Unidos', mx: 'México', co: 'Colombia',
+    cl: 'Chile', pe: 'Perú'
+};
+
 function goToScreen(screenId) {
     document.querySelectorAll('.screen').forEach(function (s) { return s.classList.remove('active'); });
     document.getElementById(screenId).classList.add('active');
@@ -400,6 +414,15 @@ function switchGameTab(btn, tabId) {
     }
     if (tabId === 'tab-mercado') {
         _mercadoLimite = 20;
+        _filtrosMercado = { rating: '', edad: '', nacionalidad: '', posicion: '' };
+        var fD = document.getElementById('filterRatingDisplay');
+        if (fD) fD.textContent = 'Todas';
+        fD = document.getElementById('filterEdadDisplay');
+        if (fD) fD.textContent = 'Cualquier edad';
+        fD = document.getElementById('filterNacDisplay');
+        if (fD) fD.textContent = '\ud83c\udf0d Cualquier pa\u00eds';
+        fD = document.getElementById('filterPosDisplay');
+        if (fD) fD.textContent = 'Todas';
         renderMercado();
     }
     if (tabId === 'tab-competiciones') {
@@ -905,6 +928,132 @@ function renderHistorial() {
     document.getElementById('modalHistorial').classList.add('active');
 }
 
+function normalizeStr(s) {
+    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+var _filtrosMercado = { rating: '', edad: '', nacionalidad: '', posicion: '' };
+
+function getOpcionesFiltro(tipo) {
+    if (tipo === 'rating') {
+        return [
+            { value: '', label: 'Todas' },
+            { value: '90-99', label: '90 - 99' },
+            { value: '80-89', label: '80 - 89' },
+            { value: '70-79', label: '70 - 79' },
+            { value: '60-69', label: '60 - 69' },
+            { value: '50-59', label: '50 - 59' },
+            { value: '40-49', label: '40 - 49' },
+            { value: '0-39', label: '0 - 39' }
+        ];
+    } else if (tipo === 'edad') {
+        return [
+            { value: '', label: 'Cualquier edad' },
+            { value: '-20', label: '< 21 años — Promesas' },
+            { value: '21-25', label: '21 - 25 años — Jóvenes' },
+            { value: '26-30', label: '26 - 30 años — Plena Madurez' },
+            { value: '31-', label: '> 30 años — Veteranos' }
+        ];
+    } else if (tipo === 'nacionalidad') {
+        var opts = [{ value: '', label: '🌍 Cualquier país', html: '🌍 Cualquier país' }];
+        var nats = {};
+        var equipos = Database.getTeams(gameState.country, gameState.league);
+        equipos.forEach(function(eq) {
+            var squad = _cachedSquads[eq.name] || eq.squad || [];
+            squad.forEach(function(j) { if (j.nationality) nats[j.nationality] = true; });
+        });
+        Object.keys(nats).sort(function(a, b) {
+            var na = _nombresPaises[a] || a.toUpperCase();
+            var nb = _nombresPaises[b] || b.toUpperCase();
+            return na.localeCompare(nb);
+        }).forEach(function(code) {
+            var name = _nombresPaises[code] || code.toUpperCase();
+            opts.push({
+                value: code,
+                label: name,
+                html: flagEmoji(code) + ' <span style="font-size:13px;">' + name + '</span>'
+            });
+        });
+        return opts;
+    } else if (tipo === 'posicion') {
+        return [
+            { value: '', label: 'Todas' },
+            { value: 'PO', label: 'PO' },
+            { value: 'DFC', label: 'DFC' },
+            { value: 'LD', label: 'LD' },
+            { value: 'LI', label: 'LI' },
+            { value: 'CAI', label: 'CAI' },
+            { value: 'CAD', label: 'CAD' },
+            { value: 'MCD', label: 'MCD' },
+            { value: 'MC', label: 'MC' },
+            { value: 'MCO', label: 'MCO' },
+            { value: 'MI', label: 'MI' },
+            { value: 'MD', label: 'MD' },
+            { value: 'EI', label: 'EI' },
+            { value: 'ED', label: 'ED' },
+            { value: 'DC', label: 'DC' }
+        ];
+    }
+    return [];
+}
+
+function abrirFiltroDropdown(e, tipo) {
+    e.stopPropagation();
+    var dd = document.getElementById('filterDropdown');
+    var list = document.getElementById('filterDropdownList');
+    if (!dd || !list) return;
+
+    if (dd.style.display === 'block' && dd._tipo === tipo) {
+        cerrarFiltroDropdown();
+        return;
+    }
+
+    var btn = e.currentTarget;
+    var tab = document.getElementById('tab-mercado');
+    var tabRect = tab.getBoundingClientRect();
+    var btnRect = btn.getBoundingClientRect();
+
+    dd.style.left = (btnRect.left - tabRect.left) + 'px';
+    dd.style.top = (btnRect.bottom - tabRect.top + 2) + 'px';
+    dd.style.width = btnRect.width + 'px';
+    dd._tipo = tipo;
+
+    list.innerHTML = '';
+    var opciones = getOpcionesFiltro(tipo);
+    var currentVal = _filtrosMercado[tipo] || '';
+
+    opciones.forEach(function(o) {
+        var item = document.createElement('div');
+        item.className = 'tactic-dropdown-item';
+        if (o.value === currentVal) item.classList.add('selected');
+        if (o.html) item.innerHTML = o.html;
+        else item.textContent = o.label;
+        if (o.color) item.style.color = o.color;
+        item.dataset.value = o.value;
+        item.dataset.label = o.html || o.label;
+        item.onclick = function(ev) { ev.stopPropagation(); seleccionarFiltroOpcion(tipo, this.dataset.value, this.dataset.label); };
+        list.appendChild(item);
+    });
+
+    dd.style.display = 'block';
+    document.querySelectorAll('.filter-btn.active').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+}
+
+function cerrarFiltroDropdown() {
+    var dd = document.getElementById('filterDropdown');
+    if (dd) dd.style.display = 'none';
+    document.querySelectorAll('.filter-btn.active').forEach(function(b) { b.classList.remove('active'); });
+}
+
+function seleccionarFiltroOpcion(tipo, valor, etiqueta) {
+    _filtrosMercado[tipo] = valor;
+    var displayMap = { rating: 'filterRatingDisplay', edad: 'filterEdadDisplay', nacionalidad: 'filterNacDisplay', posicion: 'filterPosDisplay' };
+    var el = document.getElementById(displayMap[tipo]);
+    if (el) el.textContent = etiqueta || valor;
+    cerrarFiltroDropdown();
+    renderMercado();
+}
+
 var _mercadoLimite = 20;
 
 function renderMercado() {
@@ -918,29 +1067,50 @@ function renderMercado() {
     var equipos = Database.getTeams(pais, gameState.league);
     var todosJugadores = [];
 
-    equipos.forEach(function(eq){
+    equipos.forEach(function(eq) {
         if (eq.name === gameState.team) return;
         var squad = _cachedSquads[eq.name];
-        if (!squad || squad.length === 0) return;
-        squad.forEach(function(j){
+        if (!squad || squad.length === 0) {
+            if (eq.squad && eq.squad.length > 0) {
+                squad = eq.squad;
+            } else {
+                squad = generarPlantillaSimulada(eq.name, pais, eq.rating || 75);
+            }
+            _cachedSquads[eq.name] = squad;
+        }
+        squad.forEach(function(j) {
             todosJugadores.push({ jugador: j, equipo: eq.name });
         });
     });
 
-    todosJugadores.sort(function(a,b){ return b.jugador.rating - a.jugador.rating; });
+    todosJugadores.sort(function(a, b) { return b.jugador.rating - a.jugador.rating; });
 
-    var textoBusqueda = document.getElementById('mercadoBuscar') ? document.getElementById('mercadoBuscar').value.toLowerCase() : '';
-    var filtroPos = document.getElementById('filtroPos') ? document.getElementById('filtroPos').value : '';
-    var ratingMin = parseInt(document.getElementById('filtroRatingMin') ? document.getElementById('filtroRatingMin').value : '') || 0;
-    var edadMin = parseInt(document.getElementById('filtroEdadMin') ? document.getElementById('filtroEdadMin').value : '') || 0;
+    var textoBusqueda = document.getElementById('mercadoBuscar') ? document.getElementById('mercadoBuscar').value : '';
+    var filtroPos = _filtrosMercado.posicion;
+    var filtroRating = _filtrosMercado.rating;
+    var filtroEdad = _filtrosMercado.edad;
+    var filtroNac = _filtrosMercado.nacionalidad;
 
     var filtrados = [];
-    todosJugadores.forEach(function(item, idx){
+    todosJugadores.forEach(function(item) {
         var j = item.jugador;
         if (filtroPos && j.pos !== filtroPos) return;
-        if (j.rating < ratingMin) return;
-        if (j.age < edadMin) return;
-        if (textoBusqueda && j.name.toLowerCase().indexOf(textoBusqueda) === -1) return;
+        if (filtroRating) {
+            var parts = filtroRating.split('-');
+            if (parts.length === 2) {
+                var rMin = parseInt(parts[0]);
+                var rMax = parseInt(parts[1]);
+                if (j.rating < rMin || j.rating > rMax) return;
+            }
+        }
+        if (filtroEdad) {
+            if (filtroEdad === '-20' && j.age >= 21) return;
+            else if (filtroEdad === '21-25' && (j.age < 21 || j.age > 25)) return;
+            else if (filtroEdad === '26-30' && (j.age < 26 || j.age > 30)) return;
+            else if (filtroEdad === '31-' && j.age <= 30) return;
+        }
+        if (filtroNac && j.nationality !== filtroNac) return;
+        if (textoBusqueda && normalizeStr(j.name).indexOf(normalizeStr(textoBusqueda)) === -1) return;
         filtrados.push(item);
     });
 
@@ -951,7 +1121,7 @@ function renderMercado() {
 
     var mostrar = filtrados.slice(0, _mercadoLimite);
     var html = '<div style="font-size:11px;color:#38bdf8;padding:4px 2px;border-bottom:1px solid #1e293b;margin-bottom:2px;">JUGADORES DISPONIBLES (' + filtrados.length + ')</div>';
-    mostrar.forEach(function(item, idx){
+    mostrar.forEach(function(item, idx) {
         var j = item.jugador;
         var precio = calcularPrecio(j.rating);
         var color = getColorLinea(j.pos);
@@ -976,8 +1146,8 @@ function renderMercado() {
     }
     lista.innerHTML = html;
 
-    lista.querySelectorAll('.tactic-list-item[data-midx]').forEach(function(el){
-        el.onclick = function(){
+    lista.querySelectorAll('.tactic-list-item[data-midx]').forEach(function(el) {
+        el.onclick = function() {
             var idx = parseInt(this.dataset.midx);
             if (idx >= 0 && idx < mostrar.length) {
                 showPlayerDetail(mostrar[idx].jugador);
@@ -2106,8 +2276,12 @@ function seleccionarOpcionDropdown(tipo, valor) {
 
 document.addEventListener('click', function(e) {
     var dd = document.getElementById('tacticDropdown');
-    if (dd && dd.style.display === 'block' && !dd.contains(e.target)) {
+    if (dd && dd.style.display === 'block' && !dd.contains(e.target) && !e.target.closest('.tactic-card')) {
         cerrarDropdown();
+    }
+    var fd = document.getElementById('filterDropdown');
+    if (fd && fd.style.display === 'block' && !fd.contains(e.target) && !e.target.closest('.filter-btn')) {
+        cerrarFiltroDropdown();
     }
 });
 

@@ -363,17 +363,31 @@
                                 <input type="text" id="mercadoBuscar" class="form-input" placeholder="🔍 Buscar jugador..." style="font-size:12px;padding:3px;flex:1;" oninput="renderMercado()">
                             </div>
                             <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
-                                <select id="filtroPos" class="form-input" style="font-size:10px;padding:2px;flex:1;" onchange="renderMercado()">
-                                    <option value="">Todas posiciones</option>
-                                    <option value="PO">POR</option><option value="DFC">DFC</option><option value="LI">LI</option><option value="LD">LD</option>
-                                    <option value="CAI">CAI</option><option value="CAD">CAD</option>
-                                    <option value="MCD">MCD</option><option value="MC">MC</option><option value="MCO">MCO</option><option value="MI">MI</option><option value="MD">MD</option>
-                                    <option value="EI">EI</option><option value="ED">ED</option><option value="DC">DC</option>
-                                </select>
-                                <input type="number" id="filtroRatingMin" class="form-input" placeholder="Med min" style="font-size:10px;padding:2px;width:48px;" oninput="renderMercado()" min="0" max="99">
-                                <input type="number" id="filtroEdadMin" class="form-input" placeholder="Edad min" style="font-size:10px;padding:2px;width:48px;" oninput="renderMercado()" min="15" max="50">
+                                <div class="filter-btn" id="filterPosBtn" onclick="abrirFiltroDropdown(event,'posicion')">
+                                    <span class="filter-btn-label">POSICIÓN</span>
+                                    <span id="filterPosDisplay" class="filter-btn-value">Todas</span>
+                                    <span class="filter-btn-arrow">▼</span>
+                                </div>
+                                <div class="filter-btn" id="filterRatingBtn" onclick="abrirFiltroDropdown(event,'rating')">
+                                    <span class="filter-btn-label">VALORACIÓN</span>
+                                    <span id="filterRatingDisplay" class="filter-btn-value">Todas</span>
+                                    <span class="filter-btn-arrow">▼</span>
+                                </div>
+                                <div class="filter-btn" id="filterEdadBtn" onclick="abrirFiltroDropdown(event,'edad')">
+                                    <span class="filter-btn-label">EDAD</span>
+                                    <span id="filterEdadDisplay" class="filter-btn-value">Cualquier edad</span>
+                                    <span class="filter-btn-arrow">▼</span>
+                                </div>
+                                <div class="filter-btn" id="filterNacBtn" onclick="abrirFiltroDropdown(event,'nacionalidad')">
+                                    <span class="filter-btn-label">PAÍS</span>
+                                    <span id="filterNacDisplay" class="filter-btn-value">🌍 Cualquier país</span>
+                                    <span class="filter-btn-arrow">▼</span>
+                                </div>
                             </div>
                             <div id="mercadoLista" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+                            <div id="filterDropdown" class="tactic-dropdown" style="display:none;">
+                                <div id="filterDropdownList"></div>
+                            </div>
                         </div>
                     </div>
 
