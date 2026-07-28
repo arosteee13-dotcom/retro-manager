@@ -55,7 +55,7 @@ var _formacionesEquipos = {
     'Real Madrid': '4-4-2 Diamante',
     'Atlético de Madrid': '5-3-2 Defensivo',
     'Athletic Club': '4-2-3-1',
-    'Girona FC': '4-3-3 Defensivo',
+    'Girona FC': '4-2-3-1',
     'Real Sociedad': '4-3-3 Defensivo',
     'Real Betis': '4-2-3-1',
     'Villarreal': '4-4-2 Estándar',
@@ -75,25 +75,25 @@ var _formacionesEquipos = {
     // LaLiga Hypermotion
     'Mallorca': '5-3-2 Defensivo',
     'Leganés': '5-3-2 Defensivo',
-    'Almería': '4-2-3-1',
+    'Almería': '4-3-3 Defensivo',
     'Real Oviedo': '4-2-3-1',
     'UD Las Palmas': '4-3-3 Defensivo',
     'Cádiz': '4-4-2 Estándar',
     'Granada': '4-3-3 Defensivo',
     'Eibar': '4-2-3-1',
     'Real Valladolid': '4-3-3 Defensivo',
-    'Real Sporting': '4-3-3 Defensivo',
+    'Real Sporting': '4-2-3-1',
     'Albacete': '4-4-2 Estándar',
-    'Córdoba CF': '4-3-3 Defensivo',
-    'Burgos CF': '5-3-2 Defensivo',
-    'CD Castellón': '4-4-2 Estándar',
+    'Córdoba CF': '4-2-3-1',
+    'Burgos CF': '4-2-3-1',
+    'CD Castellón': '3-4-3',
     'Tenerife': '4-4-2 Estándar',
     'Eldense': '4-4-2 Estándar',
-    'FC Andorra': '4-2-3-1',
-    'AD Ceuta FC': '4-4-2 Estándar',
-    'Real Sociedad B': '4-4-2 Estándar',
-    'Celta Fortuna': '4-4-2 Estándar',
-    'CE Sabadell': '4-4-2 Estándar'
+    'FC Andorra': '4-3-3 Defensivo',
+    'AD Ceuta FC': '4-2-3-1',
+    'Real Sociedad B': '4-3-3 Defensivo',
+    'Celta Fortuna': '3-4-3',
+    'CE Sabadell': '4-3-3 Defensivo'
 };
 
 function enviarMensaje(remitente, asunto, texto, acciones) {
@@ -1121,7 +1121,7 @@ function generarCamadaCantera() {
             name: nombreCompleto,
             nationality: nat,
             age: edad,
-            height: Math.floor(Math.random() * 25) + 160,
+            height: Math.floor(Math.random() * 24) + 165,
             rating: ratingBase,
             stamina: '100%',
             val: '0M\u20ac',
@@ -1144,7 +1144,7 @@ function generarCamadaCantera() {
 
 function getCanteraColor(pos) {
     var grupo = getGrupoPos(pos);
-    var colores = { PO: '#f59e0b', DEF: '#3b82f6', MC: '#22c55e', ATA: '#ef4444' };
+    var colores = { PO: '#a855f7', DEF: '#ef4444', MC: '#f97316', ATA: '#22c55e' };
     return colores[grupo] || '#94a3b8';
 }
 
@@ -1168,17 +1168,27 @@ function renderCanteraPromesas() {
         '</tr></thead><tbody>';
     gameState.cantera.promesas.forEach(function(p, idx) {
         var color = getCanteraColor(p.pos);
-        html += '<tr>' +
+        html += '<tr style="cursor:pointer;" onclick="mostrarCanteranoPromesa(' + idx + ')">' +
             '<td><span class="pos-badge" style="background:' + color + ';color:#fff;font-size:9px;padding:1px 6px;">' + p.pos + '</span></td>' +
             '<td style="font-size:11px;color:#e2e8f0;">' + p.name + '</td>' +
             '<td style="font-size:11px;color:#94a3b8;">' + p.age + '</td>' +
             '<td style="font-size:11px;color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
             '<td style="font-size:11px;color:#eab308;font-weight:bold;">' + Math.min(99, p.rating + 3 + Math.floor(Math.random() * 6)) + '</td>' +
-            '<td><button class="btn-retro green btn-sm" onclick="firmarCanterano(' + idx + ')" style="font-size:7px;padding:2px 6px;">\u2713</button>' +
-            ' <button class="btn-retro danger btn-sm" onclick="descartarCanterano(' + idx + ')" style="font-size:7px;padding:2px 6px;">\u2717</button></td></tr>';
+            '<td><button class="btn-retro green btn-sm" onclick="event.stopPropagation();firmarCanterano(' + idx + ')" style="font-size:7px;padding:2px 6px;">\u2713</button>' +
+            ' <button class="btn-retro danger btn-sm" onclick="event.stopPropagation();descartarCanterano(' + idx + ')" style="font-size:7px;padding:2px 6px;">\u2717</button></td></tr>';
     });
     html += '</tbody></table>';
     list.innerHTML = html;
+}
+
+function mostrarCanteranoPromesa(idx) {
+    var p = gameState.cantera.promesas[idx];
+    if (p) showPlayerDetail(p, true);
+}
+
+function mostrarCanteranoFilial(idx) {
+    var p = gameState.cantera.filial[idx];
+    if (p) showPlayerDetail(p, true);
 }
 
 function renderCanteraFilial() {
@@ -1197,14 +1207,14 @@ function renderCanteraFilial() {
         var potencial = Math.min(99, p.rating + 3 + Math.floor(Math.random() * 6));
         var estado = potencial - p.rating >= 5 ? 'Promesa' : 'Formado';
         var estadoColor = potencial - p.rating >= 5 ? '#22c55e' : '#94a3b8';
-        html += '<tr>' +
+        html += '<tr style="cursor:pointer;" onclick="mostrarCanteranoFilial(' + idx + ')">' +
             '<td><span class="pos-badge" style="background:' + color + ';color:#fff;font-size:9px;padding:1px 6px;">' + p.pos + '</span></td>' +
             '<td style="font-size:11px;color:#e2e8f0;">' + p.name + '</td>' +
             '<td style="font-size:11px;color:#94a3b8;">' + p.age + '</td>' +
             '<td style="font-size:11px;color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
             '<td style="font-size:11px;color:#eab308;font-weight:bold;">' + potencial + '</td>' +
             '<td style="font-size:10px;color:' + estadoColor + ';">' + estado + '</td>' +
-            '<td><button class="btn-retro green btn-sm" onclick="subirAlPrimerEquipo(' + idx + ')" style="font-size:7px;padding:2px 6px;"><i class="fa-solid fa-arrow-up"></i> Subir</button></td></tr>';
+            '<td><button class="btn-retro green btn-sm" onclick="event.stopPropagation();subirAlPrimerEquipo(' + idx + ')" style="font-size:7px;padding:2px 6px;"><i class="fa-solid fa-arrow-up"></i> Subir</button></td></tr>';
     });
     html += '</tbody></table>';
     list.innerHTML = html;
@@ -2100,6 +2110,7 @@ function restaurarPanelClub() {
     document.getElementById('matchRatingPanel').style.display = 'none';
     document.getElementById('btnGuardarPartida').style.display = '';
     document.getElementById('btnSalirMenu').style.display = '';
+    actualizarVisibilidadSimular();
     var tEl = document.getElementById('gameTarget');
     if (tEl) tEl.innerText = gameState.objetivoTemporada || 'Evitar el descenso';
 }
@@ -2440,8 +2451,56 @@ function procesarFinTemporada() {
     document.getElementById('modalFinTemporada').style.zIndex = '500';
 }
 
+function mostrarDashboardFinTemporada() {
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var fixture = gameState.fixturesPorLiga[gameState.league] || gameState.fixture;
+    var tabla = fixture ? calcularClasificacion(equipos, fixture, gameState.totalMatchdays || 38) : [];
+    var miPos = 0, miPts = 0;
+    for (var i = 0; i < tabla.length; i++) { if (tabla[i].nombre === gameState.team) { miPos = i + 1; miPts = tabla[i].pts; break; } }
+    var numEq = equipos.length;
+
+    var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+    var seasonStr = m ? m[1] : '2026-27';
+
+    var palmares = gameState.palmaresClub[gameState.team] || [];
+    var titulosEstaTemp = palmares.filter(function(t) { return t._nuevas && t._nuevas.indexOf(seasonStr) !== -1; });
+    var satisfaccion = evaluarSatisfaccionDirectiva(miPos, gameState.objetivoTemporada);
+
+    // Actualizar dashboard
+    document.getElementById('dashJornada').innerHTML = '\ud83c\udfc6 TEMPORADA FINALIZADA <span style="font-size:10px;color:#64748b;">' + seasonStr + '</span>';
+    var tituloText = '';
+    if (titulosEstaTemp.length > 0) {
+        tituloText = titulosEstaTemp.map(function(t) { return t.nombre; }).join(', ');
+    }
+    document.getElementById('dashHomeTeam').innerHTML = '<span style="font-size:16px;">' + miPos + '\u00ba puesto</span><br><span style="font-size:11px;color:#94a3b8;">' + miPts + ' pts' + (tituloText ? ' \u00b7 ' + tituloText : '') + '</span>';
+    document.getElementById('dashAwayTeam').innerHTML = '<span style="font-size:12px;color:' + (satisfaccion.cumplido ? '#22c55e' : '#ef4444') + ';">' + satisfaccion.texto + '</span><br><span style="font-size:10px;color:#94a3b8;">Objetivo: ' + gameState.objetivoTemporada + '</span>';
+    document.getElementById('dashStadiumName').innerHTML = '<span style="font-size:11px;color:#facc15;">Nuevo presupuesto: ' + formatearPresupuesto(calcularNuevoPresupuesto(miPos, numEq, titulosEstaTemp.length)) + '</span>';
+
+    document.getElementById('btnPlayMatch').style.display = 'none';
+    document.getElementById('btnAvanzarTemporada').style.display = '';
+    document.getElementById('btnSimularTemporada').style.display = 'none';
+
+    // Enviar mensajes igual que procesarFinTemporada
+    var premios = calcularPremiosTemporada();
+    var nuevoPresupuesto = calcularNuevoPresupuesto(miPos, numEq, titulosEstaTemp.length);
+    // Mensaje con resumen
+    var msgResumen = '';
+    if (titulosEstaTemp.length > 0) msgResumen += 'T\u00edtulos: ' + tituloText + '\n';
+    msgResumen += 'Posici\u00f3n final: ' + miPos + '\u00ba (' + miPts + ' pts)\n';
+    msgResumen += satisfaccion.texto + ' (Objetivo: ' + gameState.objetivoTemporada + ')\n';
+    msgResumen += 'Nuevo presupuesto: ' + formatearPresupuesto(nuevoPresupuesto);
+    enviarMensaje('Directiva', '\ud83c\udfc6 Temporada finalizada', msgResumen);
+    renderInbox();
+
+    restaurarPanelClub();
+    goToScreen('screen-game');
+    var btnInicio = document.querySelector('.nav-tab-btn');
+    if (btnInicio) switchGameTab(btnInicio, 'tab-inicio');
+}
+
 function avanzarNuevaTemporada() {
-    document.getElementById('modalFinTemporada').classList.remove('active');
+    document.getElementById('btnAvanzarTemporada').style.display = 'none';
+    document.getElementById('btnPlayMatch').style.display = '';
     var equipos = Database.getTeams(gameState.country, gameState.league);
     var numEq = equipos.length;
     var fixture = gameState.fixturesPorLiga[gameState.league] || gameState.fixture;
@@ -2508,8 +2567,8 @@ function simularHastaFinDeTemporada() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SIMULANDO...';
 
     function tick() {
-        var modal = document.getElementById('modalFinTemporada');
-        if (modal && modal.classList.contains('active')) {
+        var avanzarBtn = document.getElementById('btnAvanzarTemporada');
+        if (avanzarBtn && avanzarBtn.style.display !== 'none' && avanzarBtn.style.display !== '') {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-bolt"></i> SIMULAR TEMPORADA';
             return;
@@ -2570,6 +2629,18 @@ function simularHastaFinDeTemporada() {
                     golesL: res.golesL, golesV: res.golesV, jugado: true
                 });
             }
+            // Actualizar calendario
+            if (gameState.calendario && gameState.calendario[jornadaIdx]) {
+                var calPartidos = gameState.calendario[jornadaIdx].partidos;
+                for (var ciCal = 0; ciCal < calPartidos.length; ciCal++) {
+                    if (calPartidos[ciCal].competicion === 'LaLiga' && !calPartidos[ciCal].jugado) {
+                        calPartidos[ciCal].jugado = true;
+                        var gFavCal = gameState.team ? 1 : 0;
+                        calPartidos[ciCal].resultado = { golesFavor: res.golesL, golesContra: res.golesV };
+                        break;
+                    }
+                }
+            }
             // Premio por resultado (victoria 150K, empate 50K)
             if (res.golesL !== undefined) {
                 var gFav = res.golesL, gCon = res.golesV;
@@ -2591,8 +2662,11 @@ function simularHastaFinDeTemporada() {
             }
             // Desgaste, lesiones y moral para el equipo del usuario
             xi.forEach(function(pp) {
+                var gastosSim = { po: 3, defensa: 10, medio: 18, ataque: 14 };
+                var lineaSim = getLinea(pp.pos);
+                var gastoSim = gastosSim[lineaSim] || 14;
                 var stPp = parseInt(pp.stamina) || 100;
-                stPp = Math.max(10, stPp - Math.floor(Math.random() * 15 + 10));
+                stPp = Math.max(5, stPp - gastoSim);
                 pp.stamina = stPp + '%';
                 var probL = 0;
                 if (stPp > 70) probL = 0.005;
@@ -2625,7 +2699,7 @@ function simularHastaFinDeTemporada() {
 
         nextMatch();
 
-        if (modal && modal.classList.contains('active')) {
+        if (avanzarBtn && avanzarBtn.style.display !== 'none' && avanzarBtn.style.display !== '') {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-bolt"></i> SIMULAR TEMPORADA';
             return;
@@ -3959,8 +4033,21 @@ function asignarGruposIniciales() {
 
 var _tacticInitDone = false;
 
+function calcRatingEfectivo(xi, ratingBase) {
+    var sum = 0, count = 0;
+    (xi || []).forEach(function(p) {
+        var stam = parseInt(p.stamina) || 100;
+        var factor = stam >= 75 ? 1.0 : stam >= 50 ? 0.85 : stam >= 25 ? 0.70 : 0.50;
+        sum += (p.rating || ratingBase || 75) * factor;
+        count++;
+    });
+    return count > 0 ? Math.round(sum / count) : (ratingBase || 75);
+}
+
 function simularPartidoCompleto(nombreL, nombreV, xiL, xiV, ratingL, ratingV) {
-    var probGanaL = ratingL / (ratingL + ratingV);
+    var rLEf = calcRatingEfectivo(xiL, ratingL);
+    var rVEf = calcRatingEfectivo(xiV, ratingV);
+    var probGanaL = rLEf / (rLEf + rVEf);
     var golesL = 0, golesV = 0;
     var eventos = [];
 
@@ -3976,7 +4063,7 @@ function simularPartidoCompleto(nombreL, nombreV, xiL, xiV, ratingL, ratingV) {
     }
 
     for (var i = 0; i < 90; i++) {
-        if (Math.random() < 0.022 * ((ratingL + ratingV) / 200)) {
+        if (Math.random() < 0.022 * ((rLEf + rVEf) / 200)) {
             var esLocal = Math.random() < probGanaL;
             if (esLocal) golesL++;
             else golesV++;
@@ -4208,10 +4295,13 @@ function aplicarLesiones(xi, equipoNombre) {
 
 function aplicarDesgasteXI(xi) {
     if (!xi) return;
+    var gastos = { po: 3, defensa: 10, medio: 18, ataque: 14 };
     for (var i = 0; i < xi.length; i++) {
-        var stam = parseInt(xi[i].stamina) || 100;
-        stam = Math.max(0, stam - (Math.floor(Math.random() * 7) + 12));
-        xi[i].stamina = stam + '%';
+        var p = xi[i];
+        var linea = getLinea(p.pos);
+        var gasto = gastos[linea] || 14;
+        var stam = parseInt(p.stamina) || 100;
+        p.stamina = Math.max(5, stam - gasto) + '%';
     }
 }
 
@@ -4294,7 +4384,7 @@ function simularPartidoCopa(local, visitante) {
     var xiV = extraerXI(squadV, visitante);
     var res = simularPartidoCompleto(local, visitante, xiL, xiV, rL, rV);
 
-    var resFinal = { golesL: res.golesL, golesV: res.golesV, tipo: 'normal' };
+    var resFinal = { golesL: res.golesL, golesV: res.golesV, tipo: 'normal', eventos: res.eventos || [] };
 
     if (res.golesL !== res.golesV) {
         return resFinal;
@@ -4388,6 +4478,9 @@ function simularRondaCopa(orden) {
         }
         var res = simularPartidoCopa(p.local, p.visitante);
         p.resultado = res;
+        if (res.eventos && res.eventos.length > 0) {
+            registrarEventosPartido(res.eventos, { local: p.local, visitante: p.visitante });
+        }
         var ganador = res.golesL > res.golesV ? p.local : p.visitante;
         ganadores.push(ganador);
     });
@@ -4599,28 +4692,29 @@ function renderCalendario() {
     var currentWeek = gameState.matchday || 1;
     var resultados = [], proximos = [], semanaActual = null;
 
-    for (var s = 0; s < gameState.calendario.length; s++) {
-        var semana = gameState.calendario[s];
-        for (var p = 0; p < semana.partidos.length; p++) {
-            var partido = JSON.parse(JSON.stringify(semana.partidos[p]));
-            partido.semana = semana.semana;
-            if (semana.semana === currentWeek) {
-                semanaActual = partido;
-            } else if (partido.jugado) {
-                if (partido.competicion === 'LaLiga') resultados.push(partido);
-            } else {
-                if (partido.competicion === 'LaLiga') proximos.push(partido);
+        for (var s = 0; s < gameState.calendario.length; s++) {
+            var semana = gameState.calendario[s];
+            for (var p = 0; p < semana.partidos.length; p++) {
+                var partido = JSON.parse(JSON.stringify(semana.partidos[p]));
+                partido.semana = semana.semana;
+                if (semana.semana === currentWeek) {
+                    semanaActual = partido;
+                } else if (partido.jugado) {
+                    resultados.push(partido);
+                } else {
+                    proximos.push(partido);
+                }
             }
         }
-    }
-    resultados.reverse();
+        resultados.reverse();
 
     var compBadge = function(c) {
         if (c === 'LaLiga') return '<span class="comp-badge laliga">LIGA</span>';
         if (c === 'Copa') return '<span class="comp-badge copa">COPA</span>';
+        if (c === 'Supercopa') return '<span class="comp-badge" style="background:#7c3aed;color:#fff;">SUPER</span>';
         return '<span class="comp-badge champions">UCL</span>';
     };
-    var condIcon = function(c) { return c === 'C' ? '<i class="fa-solid fa-house" style="color:#22c55e;"></i>' : '<i class="fa-solid fa-arrow-right" style="color:#f97316;"></i>'; };
+    var condIcon = function(c) { return c === 'C' ? '<i class="fa-solid fa-house" style="color:#22c55e;"></i>' : '<i class="fa-solid fa-plane" style="color:#f97316;"></i>'; };
     var resBadge = function(gf, gc) {
         if (gf > gc) return '<span class="result-badge victoria">' + gf + '-' + gc + ' <i class="fa-solid fa-check" style="font-size:9px;"></i></span>';
         if (gf === gc) return '<span class="result-badge empate">' + gf + '-' + gc + ' <i class="fa-solid fa-minus" style="font-size:9px;"></i></span>';
@@ -4634,7 +4728,7 @@ function renderCalendario() {
         html += '<div class="next-match-card">' +
             '<div class="next-match-header">' +
             condIcon(semanaActual.condicion) + ' ' + (semanaActual.condicion === 'C' ? 'LOCAL' : 'VISITANTE') +
-            ' <span class="comp-badge ' + (semanaActual.competicion === 'Copa' ? 'copa' : 'laliga') + '" style="margin-left:6px;">' + (semanaActual.competicion === 'Copa' ? 'COPA' : 'LIGA') + '</span>' +
+            ' <span class="comp-badge ' + (semanaActual.competicion === 'Copa' ? 'copa' : semanaActual.competicion === 'Supercopa' ? 'champions' : 'laliga') + '" style="margin-left:6px;">' + (semanaActual.competicion === 'Copa' ? 'COPA' : semanaActual.competicion === 'Supercopa' ? 'SUPER' : 'LIGA') + '</span>' +
             '<span class="next-match-jornada">Jornada ' + semanaActual.semana + '</span></div>' +
             '<div class="next-match-team">' + (semanaActual.condicion === 'C' ? gameState.team : semanaActual.rival) + '</div>' +
             '<div class="next-match-vs">vs</div>' +
@@ -4649,6 +4743,7 @@ function renderCalendario() {
             var cls = r.golesFavor !== undefined && r.golesFavor > r.golesContra ? ' cal-row-win' : r.golesFavor !== undefined && r.golesFavor === r.golesContra ? ' cal-row-draw' : '';
             html += '<div class="cal-row' + cls + '">' +
                 '<span class="cal-row-j">J' + r.semana + '</span>' +
+                compBadge(r.competicion) +
                 '<span class="cal-row-icon">' + condIcon(r.condicion) + '</span>' +
                 '<span class="cal-row-rival">' + r.rival + '</span>' +
                 resBadge(r.golesFavor, r.golesContra) +
@@ -4661,6 +4756,7 @@ function renderCalendario() {
         proximos.forEach(function(r) {
             html += '<div class="cal-row">' +
                 '<span class="cal-row-j">J' + r.semana + '</span>' +
+                compBadge(r.competicion) +
                 '<span class="cal-row-icon">' + condIcon(r.condicion) + '</span>' +
                 '<span class="cal-row-rival">' + r.rival + '</span>' +
                 '<span class="result-badge pendiente">\u23f3 Pendiente</span></div>';
@@ -5067,6 +5163,9 @@ function simularRondaSupercopa(orden) {
         }
         var res = simularPartidoCopa(p.local, p.visitante);
         p.resultado = res;
+        if (res.eventos && res.eventos.length > 0) {
+            registrarEventosPartido(res.eventos, { local: p.local, visitante: p.visitante });
+        }
         var ganador = res.golesL > res.golesV ? p.local : p.visitante;
         ganadores.push(ganador);
     });
@@ -5485,14 +5584,18 @@ function seleccionarGoleador(jugadoresEnCampo) {
     jugadoresEnCampo.forEach(function(p) {
         if (p.pos !== 'PO') {
             candidatos.push(p);
-            total += (pesos[p.pos] || 20);
+            var stamW = Math.min(1, (parseInt(p.stamina) || 100) / 100);
+            var stamFactor = stamW >= 0.75 ? 1.0 : stamW >= 0.50 ? 0.8 : stamW >= 0.25 ? 0.6 : 0.3;
+            total += Math.round((pesos[p.pos] || 20) * stamFactor);
         }
     });
     if (candidatos.length === 0) return null;
     var r = Math.random() * total;
     var acc = 0;
     for (var i = 0; i < candidatos.length; i++) {
-        acc += (pesos[candidatos[i].pos] || 20);
+        var sw = Math.min(1, (parseInt(candidatos[i].stamina) || 100) / 100);
+        var sf = sw >= 0.75 ? 1.0 : sw >= 0.50 ? 0.8 : sw >= 0.25 ? 0.6 : 0.3;
+        acc += Math.round((pesos[candidatos[i].pos] || 20) * sf);
         if (r <= acc) return candidatos[i];
     }
     return candidatos[candidatos.length - 1];
@@ -5635,6 +5738,7 @@ function confirmarCambios() {
     document.getElementById('btnContinuarSegundaParte').style.display = 'none';
     document.getElementById('btnGuardarPartida').style.display = 'none';
     document.getElementById('btnSalirMenu').style.display = 'none';
+    document.getElementById('btnSimularTemporada').style.display = 'none';
     document.getElementById('matchCommentary').style.display = '';
     document.getElementById('matchCommentary').innerHTML += '<p style="color:#38bdf8;">¡Comienza la segunda parte!</p>';
     document.getElementById('gameSidebarNav').style.display = '';
@@ -5814,6 +5918,7 @@ function runMatchSimulation() {
     document.getElementById('btnContinuarSegundaParte').style.display = 'none';
     document.getElementById('btnGuardarPartida').style.display = 'none';
     document.getElementById('btnSalirMenu').style.display = 'none';
+    document.getElementById('btnSimularTemporada').style.display = 'none';
 
     document.getElementById('panelClubInfo').style.display = 'none';
     document.getElementById('matchRatingPanel').style.display = 'flex';
@@ -5900,7 +6005,10 @@ function runMatchSimulation() {
 
         matchState.jugadoresEnCampo.forEach(function(p) {
             var stam = parseInt(p.stamina) || 100;
-            var desgaste = Math.round((Math.floor(Math.random() * 4) + 6) * multStamina);
+            var gastosTick = { po: 0.5, defensa: 2, medio: 3, ataque: 2.5 };
+            var lineaG = getLinea(p.pos);
+            var baseGasto = gastosTick[lineaG] || 2;
+            var desgaste = Math.round((baseGasto + Math.random() * 2) * multStamina);
             stam = Math.max(0, stam - desgaste);
             p.stamina = stam + '%';
         });
@@ -6096,13 +6204,9 @@ function recuperarEstaminaPlantilla(diasDescanso) {
             }
         }
         var stam = parseInt(p.stamina) || 100;
-        if (xiIds.indexOf(p.id) === -1) {
-            stam = 100;
-        } else {
-            var factor = diasDescanso >= 6 ? 6 : 5;
-            stam = Math.min(100, stam + diasDescanso * factor);
-        }
-        p.stamina = stam + '%';
+        stam += 22;
+        if (xiIds.indexOf(p.id) === -1) stam += 10;
+        p.stamina = Math.min(100, stam) + '%';
     }
 }
 
@@ -6332,15 +6436,15 @@ function nextMatch() {
                     'El ' + gameState.team + (tablaP[2].nombre === gameState.team || tablaP[3].nombre === gameState.team || tablaP[4].nombre === gameState.team || tablaP[5].nombre === gameState.team ? ' ha clasificado al playoff de ascenso.' : ' no ha clasificado al playoff de ascenso.'));
                 renderInbox();
             } else {
-                procesarFinTemporada();
+                mostrarDashboardFinTemporada();
                 return;
             }
         } else if (esSegunda && gameState.playoff && gameState.playoff.completado) {
             gameState.playoff = null;
-            procesarFinTemporada();
+            mostrarDashboardFinTemporada();
             return;
         } else if (!esSegunda) {
-            procesarFinTemporada();
+            mostrarDashboardFinTemporada();
             return;
         }
     }
@@ -6840,7 +6944,7 @@ function cambiarRol(rol) {
 
 function showPlayerDetail(p, esPropio) {
     _playerModalId = p.id;
-    document.getElementById('playerModalDorsal').innerText = '#' + (p.dorsal || p.id || '-');
+    document.getElementById('playerModalDorsal').innerText = p.esCanterano ? 'C' : '#' + (p.dorsal || p.id || '-');
     document.getElementById('playerModalPos').className = 'pos-badge pos-' + p.pos;
     document.getElementById('playerModalPos').innerText = p.pos;
     document.getElementById('playerModalName').innerText = p.name;
