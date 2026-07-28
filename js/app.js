@@ -489,6 +489,7 @@ function generateSquad(teamRating) {
             lesionSemanas: 0,
             sancionSemanas: 0,
             tarjetasAmarillasAcum: 0,
+            moral: 4, rol: 'rotacion', jornadasSinJugar: 0,
             statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 }
         };
     });
@@ -505,11 +506,21 @@ function validateDorsal(dorsal, squad, excludeId) {
 function flagEmoji(code) {
     var flags = {
         es: '🇪🇸', fr: '🇫🇷', br: '🇧🇷', ar: '🇦🇷', it: '🇮🇹',
-        nl: '🇳🇱', 'gb': '🇬🇧', eng: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', de: '🇩🇪', pt: '🇵🇹', pl: '🇵🇱',
+        nl: '🇳🇱', 'gb': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', eng: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', de: '🇩🇪', pt: '🇵🇹', pl: '🇵🇱',
         hu: '🇭🇺', dk: '🇩🇰', uy: '🇺🇾', se: '🇸🇪', be: '🇧🇪',
         at: '🇦🇹', ch: '🇨🇭', jp: '🇯🇵', kr: '🇰🇷', ng: '🇳🇬',
                 ma: '🇲🇦', sn: '🇸🇳', ci: '🇨🇮', cm: '🇨🇲', gh: '🇬🇭', gw: '🇬🇼', ua: '🇺🇦', tr: '🇹🇷', si: '🇸🇮', sk: '🇸🇰', no: '🇳🇴', ro: '🇷🇴', gn: '🇬🇳', gq: '🇬🇶', my: '🇲🇾', fi: '🇫🇮', ml: '🇲🇱', rs: '🇷🇸', dz: '🇩🇿', do: '🇩🇴',
-        us: '🇺🇸', mx: '🇲🇽', co: '🇨🇴', cl: '🇨🇱', pe: '🇵🇪'
+        us: '🇺🇸', mx: '🇲🇽', co: '🇨🇴', cl: '🇨🇱', pe: '🇵🇪',
+        tg: '🇹🇬', cz: '🇨🇿', cd: '🇨🇩',
+        hn: '🇭🇳', il: '🇮🇱',
+        ie: '🇮🇪',
+        ge: '🇬🇪', gm: '🇬🇲',
+        al: '🇦🇱', ao: '🇦🇴',
+        ga: '🇬🇦',
+        ve: '🇻🇪', ru: '🇷🇺', is: '🇮🇸',
+        gr: '🇬🇷', ch: '🇨🇭',
+        mk: '🇲🇰', gp: '🇬🇵',
+        cv: '🇨🇻', ca: '🇨🇦'
     };
     return flags[code] || '';
 }
@@ -525,7 +536,17 @@ var _nombresPaises = {
     no: 'Noruega', ro: 'Rumanía', gn: 'Guinea', gq: 'Guinea Ecuatorial',
     my: 'Malasia', fi: 'Finlandia', ml: 'Mali', rs: 'Serbia', dz: 'Argelia',
     do: 'República Dominicana', us: 'Estados Unidos', mx: 'México', co: 'Colombia',
-    cl: 'Chile', pe: 'Perú'
+    cl: 'Chile', pe: 'Perú',
+    tg: 'Togo', cz: 'República Checa', cd: 'República Democrática del Congo',
+    hn: 'Honduras', il: 'Israel',
+    ie: 'Irlanda',
+    ge: 'Georgia', gm: 'Gambia',
+    al: 'Albania', ao: 'Angola',
+    ga: 'Gabón',
+    ve: 'Venezuela', ru: 'Rusia', is: 'Islandia',
+    gr: 'Grecia', ch: 'Suiza',
+    mk: 'Macedonia del Norte', gp: 'Guadalupe',
+    cv: 'Cabo Verde', ca: 'Canadá'
 };
 
 function goToScreen(screenId) {
@@ -668,7 +689,7 @@ var _cesionesSalida = {
         { nombre: 'C. Lenglet', pos: 'DEF', destino: 'Benfica' },
         { nombre: 'H. Moldovan', pos: 'POR', destino: 'Eyupspor' }
     ],
-    'RC Celta': [
+    'Celta': [
         { nombre: 'Manu Sánchez', pos: 'DEF', destino: 'Levante' },
         { nombre: 'Carlos Dotor', pos: 'MED', destino: 'Málaga' },
         { nombre: 'Hugo Sotelo', pos: 'MED', destino: 'Levante' }
@@ -685,6 +706,17 @@ var _cesionesSalida = {
     'Espanyol': [
         { nombre: 'José Gragera', pos: 'MED', destino: 'Burgos CF' },
         { nombre: 'Antoniu', pos: 'DEL', destino: 'Mallorca' }
+    ],
+    'Racing': [
+        { nombre: 'Jokin Ezkieta', pos: 'POR', destino: 'Cádiz' },
+        { nombre: 'Aritz Aldasoro', pos: 'MED', destino: 'Real Oviedo' }
+    ],
+    'RC Deportivo': [
+        { nombre: 'Diego Gómez', pos: 'DEL', destino: 'Huesca' }
+    ],
+    'Villarreal': [
+        { nombre: 'Diego Conde', pos: 'POR', destino: 'Real Betis' },
+        { nombre: 'Arnau Tenas', pos: 'POR', destino: 'Mallorca' }
     ]
 };
 
@@ -744,6 +776,7 @@ function startGame() {
     }
 
     inicializarCesiones();
+    asignarRolesIniciales();
     renderSquadTable();
     asignarGruposIniciales();
     renderTacticPitch();
@@ -809,6 +842,8 @@ function startGame() {
     if (!gameState.patrocinadorActual && gameState.ofertasPatrocinio.length === 0) {
         generarOfertasPatrocinio();
     }
+    enviarMensaje('Cuerpo Técnico', '\ud83d\udccb Ajuste de roles',
+        'Los roles de la plantilla se han asignado autom\u00e1ticamente seg\u00fan el nivel de cada jugador. Revisa y aj\u00fastalos en el modal de cada jugador haciendo clic en el rol.');
     renderInbox();
 
     goToScreen('screen-game');
@@ -1014,6 +1049,7 @@ function generarCamadaCantera() {
             lesionSemanas: 0, tipoLesion: '',
             sancionSemanas: 0,
             tarjetasAmarillasAcum: 0,
+            moral: 4, rol: 'rotacion', jornadasSinJugar: 0,
             statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 },
             golesHistoricos: 0,
             partidosHistoricos: 0,
@@ -1214,6 +1250,7 @@ function renderSquadStats() {
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
             '<td>' + p.name + getEstadoIcono(p) + '</td>' +
+            '<td style="text-align:center;">' + getMoralIcon(p) + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + (st.partidos || 0) + '</td>' +
             '<td style="color:#10b981;">' + (st.goles || 0) + '</td>' +
@@ -1225,7 +1262,7 @@ function renderSquadStats() {
     });
     if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
         var hr = tbody.insertRow();
-        hr.innerHTML = '<td colspan="9" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
+        hr.innerHTML = '<td colspan="10" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
         gameState.cedidosFuera.forEach(function(cr) {
             var r = tbody.insertRow();
             r.style.color = '#64748b';
@@ -1233,6 +1270,7 @@ function renderSquadStats() {
                 '<td><span class="dorsal-badge" style="background:#334155;">' + (cr.dorsal || '-') + '</span></td>' +
                 '<td><span class="pos-badge pos-' + cr.pos + '">' + cr.pos + '</span></td>' +
                 '<td>' + cr.nombre + ' <span style="color:#eab308;font-size:10px;">→ ' + cr.destino + '</span></td>' +
+                '<td style="text-align:center;">-</td>' +
                 '<td style="font-size:20px;">' + flagEmoji(cr.nacionalidad || 'es') + '</td>' +
                 '<td>' + (cr.partidos || 0) + '</td>' +
                 '<td style="color:#10b981;">' + (cr.statsTemporada ? (cr.statsTemporada.goles || 0) : 0) + '</td>' +
@@ -1270,6 +1308,7 @@ function renderSquadTable() {
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
             '<td>' + p.name + getEstadoIcono(p) + (p.enTransferibles ? ' <span style="font-size:8px;background:#92400e;color:#fbbf24;padding:1px 4px;border-radius:3px;font-weight:bold;">TRA</span>' : '') + (p.enCedibles ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + (p.esCedido ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span> <span style="font-size:9px;color:#38bdf8;">\u2190 ' + (p.equipoOrigen || '?') + '</span>' : '') + '</td>' +
+            '<td style="text-align:center;">' + getMoralIcon(p) + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -1280,7 +1319,7 @@ function renderSquadTable() {
     });
     if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
         var hr = tbody.insertRow();
-        hr.innerHTML = '<td colspan="8" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS A OTROS CLUBES</td>';
+        hr.innerHTML = '<td colspan="9" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS A OTROS CLUBES</td>';
         gameState.cedidosFuera.forEach(function(cr) {
             var r = tbody.insertRow();
             r.style.color = '#64748b';
@@ -1288,6 +1327,7 @@ function renderSquadTable() {
                 '<td><span class="dorsal-badge" style="background:#334155;">' + (cr.dorsal || '-') + '</span></td>' +
                 '<td><span class="pos-badge pos-' + cr.pos + '">' + cr.pos + '</span></td>' +
                 '<td>' + cr.nombre + ' <span style="color:#eab308;font-size:10px;">→ ' + cr.destino + '</span></td>' +
+                '<td style="text-align:center;">-</td>' +
                 '<td style="font-size:20px;">' + flagEmoji(cr.nacionalidad || 'es') + '</td>' +
                 '<td>' + (cr.edad || '-') + '</td>' +
                 '<td style="color:#6ee7b7;font-weight:bold;">' + (cr.rating || '-') + '</td>' +
@@ -1460,6 +1500,7 @@ function generarPlantillaSimulada(nombreEquipo, pais, ratingEquipo) {
             lesionSemanas: 0,
             sancionSemanas: 0,
             tarjetasAmarillasAcum: 0,
+            moral: 4, rol: 'rotacion', jornadasSinJugar: 0,
             statsTemporada: { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 }
         });
     }
@@ -1999,26 +2040,61 @@ function obtenerTodosJugadoresLiga() {
 
 function procesarEvolucionRendimiento() {
     var todos = obtenerTodosJugadoresLiga();
+    var cambios = [];
     todos.forEach(function(p) {
-        var avg = p.statsTemporada ? (p.statsTemporada.promedioNotas || 0) : 0;
-        var partidos = p.statsTemporada ? (p.statsTemporada.partidos || 0) : 0;
+        if (!p.statsTemporada) return;
+        var avg = p.statsTemporada.promedioNotas || 0;
+        var partidos = p.statsTemporada.partidos || 0;
         var cambio = 0;
 
-        if (p.age <= 29) {
-            if (avg >= 7.2 && partidos >= 5) cambio = Math.floor(Math.random() * 3) + 2;
-            else if (avg >= 6.3 && partidos >= 5) cambio = Math.floor(Math.random() * 2);
-            else cambio = -(Math.floor(Math.random() * 2) + 1);
+        if (avg >= 7.5 && partidos >= 3) {
+            cambio = 2 + Math.floor(Math.random() * 2);
+        } else if (avg >= 6.8 && partidos >= 3) {
+            cambio = 1;
+        } else if (avg >= 6.0 || partidos === 0) {
+            cambio = 0;
         } else {
-            if (avg >= 7.3 && partidos >= 5) cambio = 0;
-            else if (avg > 0 || partidos > 0) cambio = -(Math.floor(Math.random() * 3) + 1);
-            else cambio = -(Math.floor(Math.random() * 2) + 1);
+            cambio = -1;
         }
 
-        p.rating = Math.min(99, Math.max(40, (p.rating || 75) + cambio));
-        var valNum = p.rating * 0.12;
-        valNum = Math.max(0.1, valNum);
-        p.val = valNum.toFixed(1) + 'M\u20ac';
+        if (p.age <= 21 && partidos >= 3) cambio += 1;
+        if (p.age >= 33) cambio -= 1 + Math.floor(Math.random() * 2);
+
+        var oldRating = p.rating || 75;
+        var newRating = Math.min(99, Math.max(40, oldRating + cambio));
+        p.rating = newRating;
+
+        var valMult = 1.0;
+        if (avg >= 7.5 && partidos >= 3) valMult = 1.30;
+        else if (avg >= 6.8 && partidos >= 3) valMult = 1.10;
+        else if (avg < 6.0 && partidos >= 3) valMult = 0.90;
+
+        var valNum = p.rating * 0.12 * valMult;
+        p.val = Math.max(0.1, valNum).toFixed(1) + 'M\u20ac';
+
+        if (Math.abs(cambio) >= 2 && p.name) {
+            cambios.push({ nombre: p.name, cambio: cambio });
+        }
     });
+
+    if (cambios.length > 0) {
+        cambios.sort(function(a, b) { return b.cambio - a.cambio; });
+        var suben = cambios.filter(function(c) { return c.cambio >= 2; }).slice(0, 3);
+        var bajan = cambios.filter(function(c) { return c.cambio <= -2; }).reverse().slice(0, 3);
+        var msg = '';
+        if (suben.length > 0) {
+            msg += '\u2B06 Mayor evoluci\u00f3n positiva:\n';
+            suben.forEach(function(c) { msg += c.nombre + ' (+' + c.cambio + ')\n'; });
+        }
+        if (bajan.length > 0) {
+            if (msg) msg += '\n';
+            msg += '\u2B07 Mayor evoluci\u00f3n negativa:\n';
+            bajan.forEach(function(c) { msg += c.nombre + ' (' + c.cambio + ')\n'; });
+        }
+        if (msg) {
+            enviarMensaje('Departamento de An\u00e1lisis', '\ud83d\udcca Evoluci\u00f3n de rendimiento', msg);
+        }
+    }
 }
 
 function simularPlayoffAscenso(equipoA, equipoB) {
@@ -2164,7 +2240,7 @@ function iniciarNuevaTemporada() {
         p.age = (p.age || 20) + 1;
         p.statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 };
         p.pj = 0; p.gol = 0; p.asi = 0; p.ta = 0; p.tr = 0;
-        p.lesionSemanas = 0; p.tipoLesion = ''; p.sancionSemanas = 0; p.tarjetasAmarillasAcum = 0;
+        p.lesionSemanas = 0; p.tipoLesion = ''; p.sancionSemanas = 0; p.tarjetasAmarillasAcum = 0; p.jornadasSinJugar = 0; p._solicitudEnviada = false;
         p.stamina = '100%';
     });
 
@@ -2183,6 +2259,8 @@ function iniciarNuevaTemporada() {
         'Comienza una nueva temporada. Todos los equipos empiezan desde cero. ¡Suerte!');
     enviarMensaje('Directiva', '🎯 Nuevo objetivo de temporada',
         'Tras analizar los resultados, la Directiva ha fijado el siguiente objetivo: ' + gameState.objetivoTemporada + '.');
+    enviarMensaje('Cuerpo Técnico', '\ud83d\udccb Revisión de roles',
+        'Los roles de la plantilla se mantienen de la temporada anterior. Revisa y ajústalos en el modal de cada jugador si lo necesitas.');
     renderInbox();
     recalcularRatingClub();
 }
@@ -2261,6 +2339,63 @@ function getEstadoIcono(p) {
     if (p && p.lesionSemanas > 0) r += '<span style="font-size:11px;margin-left:2px;" title="Lesionado ' + p.lesionSemanas + ' sem">🩹' + p.lesionSemanas + '</span>';
     if (p && p.sancionSemanas > 0) r += '<span style="font-size:11px;margin-left:2px;" title="Sancionado ' + p.sancionSemanas + ' part">🟥' + p.sancionSemanas + '</span>';
     return r;
+}
+
+function getMoralIcon(p) {
+    var m = (p && p.moral) || 4;
+    var icons = { 5: 'fa-face-grin-stars', 4: 'fa-face-smile', 3: 'fa-face-meh', 2: 'fa-face-frown', 1: 'fa-face-angry' };
+    var colors = { 5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f97316', 1: '#ef4444' };
+    return '<i class="fa-regular ' + (icons[m] || 'fa-face-smile') + '" style="color:' + (colors[m] || '#84cc16') + ';font-size:14px;" title="Moral: ' + m + '/5"></i>';
+}
+
+function getRolTexto(rol) {
+    var textos = { estrella: 'Estrella', rotacion: 'Rotaci\u00f3n', suplente: 'Suplente', promesa: 'Joven Promesa' };
+    return textos[rol] || 'Rotaci\u00f3n';
+}
+
+function asignarRolesIniciales() {
+    if (!gameState.squad) return;
+    var ordenados = gameState.squad.slice().sort(function(a, b) { return b.rating - a.rating; });
+    ordenados.forEach(function(p, idx) {
+        if (idx < 3) p.rol = 'estrella';
+        else if (idx < 8) p.rol = 'rotacion';
+        else if (p.age <= 21 && p.rating < 70) p.rol = 'promesa';
+        else p.rol = 'suplente';
+        if (p.moral === undefined) p.moral = 4;
+        if (p.jornadasSinJugar === undefined) p.jornadasSinJugar = 0;
+    });
+}
+
+function actualizarMoralPostPartido() {
+    if (!matchState || !matchState.jugadoresQueJugaron) return;
+    var idsJugaron = {};
+    matchState.jugadoresQueJugaron.forEach(function(id) { idsJugaron[id] = true; });
+    gameState.squad.forEach(function(p) {
+        if (p.lesionSemanas > 0) return;
+        if (idsJugaron[p.id]) {
+            p.moral = Math.min(5, (p.moral || 4) + 1);
+            p.jornadasSinJugar = 0;
+        } else {
+            var stam = parseInt(p.stamina) || 100;
+            if (stam < 80) { p.jornadasSinJugar = 0; return; }
+            p.jornadasSinJugar = (p.jornadasSinJugar || 0) + 1;
+            var umbral = 5;
+            if (p.rol === 'estrella') umbral = 2;
+            else if (p.rol === 'rotacion') umbral = 3;
+            if (p.jornadasSinJugar >= umbral) {
+                p.moral = Math.max(1, (p.moral || 4) - 1);
+            }
+        }
+    });
+    gameState.squad.forEach(function(p) {
+        if (p.moral === 1 && (p.jornadasSinJugar || 0) >= 3 && !p._solicitudEnviada) {
+            p._solicitudEnviada = true;
+            p.enTransferibles = true;
+            enviarMensaje('Agente de ' + p.name, '\ud83d\udcc4 Solicitud de traspaso',
+                p.name + ' ha solicitado formalmente ser puesto en la lista de transferibles por falta de minutos.');
+            renderInbox();
+        }
+    });
 }
 
 function calcularPrecio(rating) {
@@ -2616,6 +2751,9 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
     if (!nuevoJugador.statsTemporada) nuevoJugador.statsTemporada = { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 };
     nuevoJugador.golesHistoricos = 0;
     nuevoJugador.partidosHistoricos = 0;
+    nuevoJugador.moral = 4;
+    nuevoJugador.rol = 'rotacion';
+    nuevoJugador.jornadasSinJugar = 0;
     gameState.squad.push(nuevoJugador);
     squadOrigen.splice(idx, 1);
     _presupuestosCPU[equipoOrigen] = (_presupuestosCPU[equipoOrigen] || 0) + precio;
@@ -4492,7 +4630,7 @@ function renderTacticPitch() {
         html += '<div class="tactic-list-item' + sel + '" data-pid="' + p.id + '">' +
             '<span style="font-size:11px;color:#e2e8f0;min-width:24px;">' + (p.dorsal || '-') + '</span> ' +
             badge + ' ' +
-            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + getEstadoIcono(p) + capIcon + '</span>' +
+            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + getEstadoIcono(p) + getMoralIcon(p) + capIcon + '</span>' +
             '<span style="font-size:11px;color:#6ee7b7;">(' + p.rating + ')</span>' +
             '<span style="font-size:11px;color:' + stamCol + ';min-width:40px;text-align:right;">⚡ ' + stam + '</span></div>';
     });
@@ -4540,7 +4678,7 @@ function renderTacticLists() {
         return '<div class="tactic-list-item' + sel + '" data-pid="' + p.id + '">' +
             '<span style="font-size:11px;color:#e2e8f0;min-width:24px;">' + (p.dorsal || '-') + '</span> ' +
             badge + ' ' +
-            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + getEstadoIcono(p) + capIcon + '</span>' +
+            '<span class="p-name" style="flex:1;font-size:12px;color:#e2e8f0;"> ' + p.name + getEstadoIcono(p) + getMoralIcon(p) + capIcon + '</span>' +
             '<span style="font-size:11px;color:#6ee7b7;">(' + p.rating + ')</span>' +
             '<span style="font-size:11px;color:' + stamCol + ';min-width:40px;text-align:right;">⚡ ' + stam + '</span></div>';
     }
@@ -5347,6 +5485,7 @@ function runMatchSimulation() {
             var todosQueJugaron = [];
             matchState.jugadoresEnCampo.forEach(function(p) { todosQueJugaron.push(p); });
             calcularNotasPartido(todosQueJugaron, awayGoals, homeGoals);
+            actualizarMoralPostPartido();
             aplicarDesgasteXI(todosQueJugaron);
             aplicarLesiones(todosQueJugaron, gameState.team);
             renderInbox();
@@ -5413,6 +5552,8 @@ function procesarRetornoCesiones() {
                 for (var j = 0; j < squadD.length; j++) {
                     if (squadD[j].id === cr.idEnDestino) {
                         var cloneStats = squadD[j].statsTemporada || {};
+                        var cloneRating = squadD[j].rating || cr.rating || 70;
+                        var cloneVal = squadD[j].val || cr.val || '0M€';
                         statsCesion.partidos = (statsCesion.partidos || 0) + (cloneStats.partidos || 0);
                         statsCesion.goles = (statsCesion.goles || 0) + (cloneStats.goles || 0);
                         statsCesion.asistencias = (statsCesion.asistencias || 0) + (cloneStats.asistencias || 0);
@@ -5435,13 +5576,14 @@ function procesarRetornoCesiones() {
                 nationality: cr.nacionalidad || 'es',
                 age: cr.edad || 25,
                 height: cr.altura || 178,
-                rating: cr.rating || 70,
+                rating: cloneRating,
                 stamina: '100%',
-                val: cr.val || '0M€',
+                val: cloneVal,
             lesionSemanas: 0,
             tipoLesion: '',
             sancionSemanas: 0,
                 tarjetasAmarillasAcum: 0,
+            moral: 4, rol: 'rotacion', jornadasSinJugar: 0,
                 statsTemporada: cr.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0, historialNotas: [], promedioNotas: 0 }
             });
             devueltos.push(cr.nombre);
@@ -5969,6 +6111,32 @@ function toggleCedible() {
     }
 }
 
+function toggleRolSelector() {
+    var c = document.getElementById('rolSelectorContainer');
+    if (c) c.style.display = c.style.display === 'block' ? 'none' : 'block';
+}
+
+function cambiarRol(rol) {
+    var p = buscarEnSquad(_playerModalId);
+    if (!p) return;
+    p.rol = rol;
+    document.getElementById('playerModalRol').innerHTML = getRolTexto(rol) + ' <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i>';
+    document.getElementById('rolSelectorContainer').style.display = 'none';
+    var opts = document.getElementById('rolSelectorContainer').querySelectorAll('.rol-option');
+    opts.forEach(function(o) {
+        var ico = o.querySelector('i');
+        if (o.getAttribute('onclick').indexOf("'" + rol + "'") !== -1) {
+            o.style.background = '#1e293b';
+            if (ico) ico.style.opacity = '1';
+        } else {
+            o.style.background = '';
+            if (ico) ico.style.opacity = '0.5';
+        }
+    });
+    renderSquadTable();
+    renderSquadStats();
+}
+
 function showPlayerDetail(p, esPropio) {
     _playerModalId = p.id;
     document.getElementById('playerModalDorsal').innerText = '#' + (p.dorsal || p.id || '-');
@@ -5982,12 +6150,36 @@ function showPlayerDetail(p, esPropio) {
     document.getElementById('playerModalRating').innerText = p.rating;
     document.getElementById('playerModalVal').innerText = p.val;
     document.getElementById('playerModalStamina').innerText = p.stamina || '100%';
+    var rolActual = p.rol || 'rotacion';
+    if (esPropio) {
+        document.getElementById('playerModalRol').innerHTML = getRolTexto(rolActual) + ' <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i>';
+        document.getElementById('rolSelectorContainer').style.display = 'none';
+        var opts = document.getElementById('rolSelectorContainer').querySelectorAll('.rol-option');
+        opts.forEach(function(o) {
+            var ico = o.querySelector('i');
+            if (o.getAttribute('onclick').indexOf("'" + rolActual + "'") !== -1) {
+                o.style.background = '#1e293b';
+                if (ico) ico.style.opacity = '1';
+            } else {
+                o.style.background = '';
+                if (ico) ico.style.opacity = '0.5';
+            }
+        });
+    } else {
+        document.getElementById('playerModalRol').innerText = getRolTexto(rolActual);
+        document.getElementById('rolSelectorContainer').style.display = 'none';
+    }
+    var m = p.moral || 4;
+    var moralTexts = { 5: 'Excelente', 4: 'Buena', 3: 'Normal', 2: 'Baja', 1: 'Muy Baja' };
+    document.getElementById('playerModalMoral').innerHTML = getMoralIcon(p) + ' ' + (moralTexts[m] || 'Buena') + ' (' + m + '/5)';
     var st = p.statsTemporada || {};
     document.getElementById('pPJ').innerText = st.partidos || 0;
     document.getElementById('pGOL').innerText = st.goles || 0;
     document.getElementById('pASI').innerText = st.asistencias || 0;
     document.getElementById('pTA').innerText = st.ta || 0;
     document.getElementById('pTR').innerText = st.tr || 0;
+    var avgNota = st.promedioNotas || 0;
+    document.getElementById('pNOTA').innerText = avgNota > 0 ? avgNota.toFixed(1) : '-';
     document.querySelectorAll('#playerModal .player-subtab').forEach(function (t) { t.style.display = 'none'; });
     document.getElementById('pinfo').style.display = 'grid';
     document.querySelectorAll('#playerModal .btn-retro.btn-sm').forEach(function (b) { b.classList.remove('active'); });

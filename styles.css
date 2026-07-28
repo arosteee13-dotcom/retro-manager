@@ -293,6 +293,10 @@ body {
     font-weight: bold;
 }
 
+.rol-option:hover {
+    background: #1e293b !important;
+}
+
 .footer-nav {
     height: 38px;
     background: #0b0f14;

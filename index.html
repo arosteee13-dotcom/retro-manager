@@ -285,6 +285,7 @@
                                             <th>#</th>
                                             <th>Pos</th>
                                             <th>Jugador</th>
+                                            <th>Mor</th>
                                             <th>Nac</th>
                                             <th>Edad</th>
                                             <th>Med</th>
@@ -305,6 +306,7 @@
                                             <th>#</th>
                                             <th>Pos</th>
                                             <th>Jugador</th>
+                                            <th>Mor</th>
                                             <th>Nac</th>
                                             <th>PJ</th>
                                             <th>GOL</th>
@@ -678,7 +680,7 @@
 </div>
 
 <div id="playerModal" class="retro-modal-overlay">
-    <div class="retro-modal" style="width: 90%; max-width: 400px; height: 290px;">
+    <div class="retro-modal" style="width: 90%; max-width: 400px; height: 330px;">
         <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #263342; padding-bottom: 6px;">
             <span id="playerModalDorsal" style="font-family: 'Press Start 2P', cursive; font-size: 24px; color: #38bdf8; min-width: 36px; text-align: center;">#</span>
             <span id="playerModalPos" class="pos-badge" style="font-size: 18px; width: 44px; padding: 4px 0;">PO</span>
@@ -698,13 +700,22 @@
             <div class="stat-row" style="border: none; padding: 2px 0;"><span>Media</span><span id="playerModalRating" class="stat-val" style="color:#6ee7b7;">-</span></div>
             <div class="stat-row" style="border: none; padding: 2px 0;"><span>Valor</span><span id="playerModalVal" class="stat-val" style="color:#facc15;">-</span></div>
             <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Estado</span><span id="playerModalStamina" class="stat-val" style="color:#10b981;">-</span></div>
+            <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Rol</span><span id="playerModalRol" class="stat-val" style="color:#38bdf8;cursor:pointer;" onclick="toggleRolSelector()">Rotación <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i></span></div>
+            <div id="rolSelectorContainer" style="display:none;grid-column:span 2;background:#0f172a;border:1px solid #334155;border-radius:4px;padding:4px;gap:2px;">
+                <div class="rol-option" onclick="cambiarRol('estrella')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-star" style="color:#eab308;"></i> Estrella</div>
+                <div class="rol-option" onclick="cambiarRol('rotacion')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-arrows-rotate" style="color:#38bdf8;"></i> Rotación</div>
+                <div class="rol-option" onclick="cambiarRol('suplente')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-chair" style="color:#94a3b8;"></i> Suplente</div>
+                <div class="rol-option" onclick="cambiarRol('promesa')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-seedling" style="color:#22c55e;"></i> Joven Promesa</div>
+            </div>
+            <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Moral</span><span id="playerModalMoral" class="stat-val"></span></div>
         </div>
-        <div id="pstats" class="player-subtab" style="display: none; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 4px; flex: 1; padding: 4px 0; text-align: center;">
+        <div id="pstats" class="player-subtab" style="display: none; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; gap: 4px; flex: 1; padding: 4px 0; text-align: center;">
             <div><span style="font-size: 12px; color:#94a3b8;">PJ</span><br><span id="pPJ" class="stat-val">0</span></div>
             <div><span style="font-size: 12px; color:#94a3b8;">GOL</span><br><span id="pGOL" class="stat-val" style="color:#10b981;">0</span></div>
             <div><span style="font-size: 12px; color:#94a3b8;">ASI</span><br><span id="pASI" class="stat-val" style="color:#38bdf8;">0</span></div>
             <div><span style="font-size: 12px; color:#94a3b8;">TA</span><br><span id="pTA" class="stat-val" style="color:#facc15;">0</span></div>
             <div><span style="font-size: 12px; color:#94a3b8;">TR</span><br><span id="pTR" class="stat-val" style="color:#fca5a5;">0</span></div>
+            <div><span style="font-size: 12px; color:#94a3b8;">NOTA</span><br><span id="pNOTA" class="stat-val" style="color:#6ee7b7;">-</span></div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div id="playerModalMyBtns" style="display: flex; gap: 4px;">
