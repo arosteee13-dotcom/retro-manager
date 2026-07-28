@@ -44,7 +44,8 @@ const gameState = {
     },
     patrocinadorActual: null,
     ofertasPatrocinio: [],
-    supercopa: null
+    supercopa: null,
+    playoff: null
 };
 
 var _formacionesEquipos = {
@@ -274,8 +275,8 @@ function generarOfertasPatrocinio() {
             '<img src="' + o.logo + '" style="height:24px;width:auto;background:#fff;border-radius:3px;padding:2px;" onerror="this.style.display=\'none\';">' +
             '<div style="flex:1;">' +
             '<div style="font-size:12px;color:#e2e8f0;font-weight:bold;">' + o.nombre + '</div>' +
-            '<div style="font-size:10px;color:#94a3b8;">' + o.pagoMensual.toFixed(2) + 'M\u20ac por periodo \u2014 ' + o.temporadas + ' temporada' + (o.temporadas > 1 ? 's' : '') + '</div></div>' +
-            '<button class="btn-retro green btn-sm" onclick="firmarPatrocinio(' + idx + ')" style="font-size:8px;padding:4px 10px;"><i class="fa-solid fa-pen"></i> Firmar</button></div>';
+            '<div style="font-size:10px;color:#94a3b8;">' + o.pagoMensual.toFixed(2) + 'M\u20ac por periodo \u2014 ' + o.temporadas + ' temporada' + (o.temporadas > 1 ? 's' : '') + '</div>' +
+            '<button class="btn-retro green btn-sm" onclick="firmarPatrocinio(' + idx + ')" style="font-size:8px;padding:4px 10px;margin-top:4px;"><i class="fa-solid fa-pen"></i> Firmar</button></div></div>';
     });
     enviarMensaje('Dirección Comercial', '\ud83d\udccb Ofertas de patrocinio disponibles',
         'El ' + gameState.team + ' tiene 3 ofertas de patrocinio sobre la mesa. Elige la que m\u00e1s te interese:<br><br>' + htmlOfertas);
@@ -2244,6 +2245,190 @@ function recalcularRatingClub() {
     gameState.rating = Math.min(99, Math.max(1, nuevo));
 }
 
+function calcularPremiosTemporada() {
+    var todos = obtenerTodosJugadoresLiga();
+    var maxGoles = 0, maxAsist = 0, mejorNota = 0;
+    var pichichi = null, asistente = null, mvp = null;
+    var mejorDefensa = null, menorGolesPJ = Infinity;
+    var equiposGC = {};
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var fixture = gameState.fixturesPorLiga[gameState.league] || gameState.fixture;
+    if (fixture) {
+        var tablaDef = calcularClasificacion(equipos, fixture, gameState.totalMatchdays || 38);
+        tablaDef.forEach(function(t) {
+            if (t.pj > 0) equiposGC[t.nombre] = t.gc / t.pj;
+        });
+    }
+    var porteros = [];
+    todos.forEach(function(p) {
+        var st = p.statsTemporada || {};
+        var partidos = st.partidos || 0;
+        if ((st.goles || 0) > maxGoles) { maxGoles = st.goles; pichichi = { nombre: p.name, valor: st.goles, equipo: obtenerEquipoJugador(p) }; }
+        if ((st.asistencias || 0) > maxAsist) { maxAsist = st.asistencias; asistente = { nombre: p.name, valor: st.asistencias, equipo: obtenerEquipoJugador(p) }; }
+        if ((st.promedioNotas || 0) > mejorNota && partidos >= 10) { mejorNota = st.promedioNotas; mvp = { nombre: p.name, valor: st.promedioNotas, equipo: obtenerEquipoJugador(p) }; }
+        if (getLinea(p.pos) === 'po' && partidos >= 5) {
+            porteros.push({ nombre: p.name, equipo: obtenerEquipoJugador(p), pj: partidos });
+        }
+    });
+    for (var eq in equiposGC) {
+        if (equiposGC[eq] < menorGolesPJ) {
+            menorGolesPJ = equiposGC[eq];
+            mejorDefensa = eq;
+        }
+    }
+    var zamora = null;
+    if (mejorDefensa) {
+        var eqSquad = obtenerSquadEquipo(mejorDefensa) || [];
+        for (var pi = 0; pi < eqSquad.length; pi++) {
+            if (getLinea(eqSquad[pi].pos) === 'po' && (eqSquad[pi].statsTemporada?.partidos || 0) >= 5) {
+                zamora = { nombre: eqSquad[pi].name, valor: menorGolesPJ, equipo: mejorDefensa };
+                break;
+            }
+        }
+    }
+    return { pichichi: pichichi, asistente: asistente, zamora: zamora, mvp: mvp };
+}
+
+function obtenerEquipoJugador(p) {
+    if (!p) return '';
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    for (var ei = 0; ei < equipos.length; ei++) {
+        var sq = obtenerSquadEquipo(equipos[ei].name) || [];
+        for (var si = 0; si < sq.length; si++) {
+            if (sq[si].id === p.id || sq[si].name === p.name) return equipos[ei].name;
+        }
+    }
+    return '';
+}
+
+function evaluarSatisfaccionDirectiva(posicion, objetivo) {
+    var numEq = (Database.getTeams(gameState.country, gameState.league) || []).length || 20;
+    var cumplido = false;
+    if (objetivo === 'Luchar por la Liga' && posicion <= 2) cumplido = true;
+    else if (objetivo === 'Clasificar a Europa' && posicion <= 6) cumplido = true;
+    else if (objetivo === 'Mitad de tabla / Top 10' && posicion <= numEq / 2) cumplido = true;
+    else if (objetivo === 'Evitar el descenso' && posicion <= numEq - 3) cumplido = true;
+    else if (objetivo === 'Conseguir el ascenso inmediato' && posicion <= 6) cumplido = true;
+
+    var nivel, texto;
+    if (cumplido) { nivel = 'satisfecha'; texto = '\ud83d\ude01 Satisfecha'; }
+    else if (posicion <= numEq - 3) { nivel = 'aceptable'; texto = '\ud83d\ude10 Aceptable'; }
+    else { nivel = 'insatisfecha'; texto = '\ud83d\ude21 Insatisfecha'; }
+    return { nivel: nivel, texto: texto, cumplido: cumplido };
+}
+
+function calcularNuevoPresupuesto(posicion, numEquipos, titulos) {
+    var eqData = null;
+    var eqs = Database.getTeams(gameState.country, gameState.league);
+    for (var ei = 0; ei < eqs.length; ei++) { if (eqs[ei].name === gameState.team) { eqData = eqs[ei]; break; } }
+    var base = eqData ? parsearPresupuesto(eqData.budget) : 5.0;
+    var bonusPos = 0;
+    if (posicion === 1) bonusPos = 10.0;
+    else if (posicion <= 4) bonusPos = 5.0;
+    else if (posicion <= 7) bonusPos = 2.0;
+    else if (posicion > numEquipos - 3) bonusPos = -base * 0.2;
+    var bonusTitulos = (titulos || 0) * 3.0;
+    return Math.max(1.0, base + bonusPos + bonusTitulos);
+}
+
+function procesarFinTemporada() {
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var fixture = gameState.fixturesPorLiga[gameState.league] || gameState.fixture;
+    var tabla = fixture ? calcularClasificacion(equipos, fixture, gameState.totalMatchdays || 38) : [];
+    var miPos = 0;
+    for (var i = 0; i < tabla.length; i++) { if (tabla[i].nombre === gameState.team) { miPos = i + 1; break; } }
+    var numEq = equipos.length;
+
+    var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+    var seasonStr = m ? m[1] : '2026-27';
+    document.getElementById('finTempSeason').innerText = 'Temporada ' + seasonStr;
+
+    var palmares = gameState.palmaresClub[gameState.team] || [];
+    var titulosEstaTemp = palmares.filter(function(t) {
+        return t._nuevas && t._nuevas.indexOf(seasonStr) !== -1;
+    });
+
+    var premios = calcularPremiosTemporada();
+    var satisfaccion = evaluarSatisfaccionDirectiva(miPos, gameState.objetivoTemporada);
+    var nuevoPresupuesto = calcularNuevoPresupuesto(miPos, numEq, titulosEstaTemp.length);
+
+    var html = '';
+
+    // Títulos
+    html += '<div style="margin-bottom:8px;">';
+    html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #1e293b;padding-bottom:3px;margin-bottom:4px;">TUS T\u00cdTULOS</div>';
+    if (titulosEstaTemp.length === 0) {
+        html += '<div style="font-size:11px;color:#64748b;padding:2px 0;">Ning\u00fan t\u00edtulo esta temporada.</div>';
+    } else {
+        titulosEstaTemp.forEach(function(t) {
+            html += '<div style="font-size:11px;color:#e2e8f0;padding:1px 0;">' + t.icono + ' ' + t.nombre + '</div>';
+        });
+    }
+    html += '</div>';
+
+    // Cuadro de Honor
+    html += '<div style="margin-bottom:8px;">';
+    html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #1e293b;padding-bottom:3px;margin-bottom:4px;">CUADRO DE HONOR</div>';
+    if (premios.pichichi) html += '<div style="font-size:11px;color:#e2e8f0;padding:1px 0;"><i class="fa-solid fa-futbol" style="color:#eab308;"></i> Pichichi: ' + premios.pichichi.nombre + ' (' + premios.pichichi.valor + ' goles) - ' + premios.pichichi.equipo + '</div>';
+    if (premios.asistente) html += '<div style="font-size:11px;color:#e2e8f0;padding:1px 0;"><i class="fa-solid fa-eye" style="color:#38bdf8;"></i> Asistente: ' + premios.asistente.nombre + ' (' + premios.asistente.valor + ' asistencias) - ' + premios.asistente.equipo + '</div>';
+    if (premios.zamora) html += '<div style="font-size:11px;color:#e2e8f0;padding:1px 0;"><i class="fa-solid fa-shield-halved" style="color:#22c55e;"></i> Zamora: ' + premios.zamora.nombre + ' (' + premios.zamora.valor.toFixed(2) + ' g/p) - ' + premios.zamora.equipo + '</div>';
+    if (premios.mvp) html += '<div style="font-size:11px;color:#e2e8f0;padding:1px 0;"><i class="fa-solid fa-star" style="color:#eab308;"></i> MVP: ' + premios.mvp.nombre + ' (' + premios.mvp.valor.toFixed(1) + ' nota) - ' + premios.mvp.equipo + '</div>';
+    html += '</div>';
+
+    // Directiva
+    html += '<div style="margin-bottom:8px;">';
+    html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #1e293b;padding-bottom:3px;margin-bottom:4px;">DIRECTIVA</div>';
+    html += '<div style="font-size:11px;color:#e2e8f0;padding:1px 0;">' + satisfaccion.texto + ' (Objetivo: ' + gameState.objetivoTemporada + ', Puesto: ' + miPos + '\u00ba)</div>';
+    html += '</div>';
+
+    // Presupuesto
+    html += '<div style="margin-bottom:4px;">';
+    html += '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;border-bottom:1px solid #1e293b;padding-bottom:3px;margin-bottom:4px;">NUEVO PRESUPUESTO</div>';
+    html += '<div style="font-size:14px;color:#facc15;font-weight:bold;">' + formatearPresupuesto(nuevoPresupuesto) + '</div>';
+    html += '</div>';
+
+    document.getElementById('finTemporadaContent').innerHTML = html;
+    document.getElementById('modalFinTemporada').classList.add('active');
+    document.getElementById('modalFinTemporada').style.zIndex = '500';
+}
+
+function avanzarNuevaTemporada() {
+    document.getElementById('modalFinTemporada').classList.remove('active');
+    var equipos = Database.getTeams(gameState.country, gameState.league);
+    var numEq = equipos.length;
+    var fixture = gameState.fixturesPorLiga[gameState.league] || gameState.fixture;
+    var tabla = fixture ? calcularClasificacion(equipos, fixture, gameState.totalMatchdays || 38) : [];
+    var miPos = 0;
+    for (var i = 0; i < tabla.length; i++) { if (tabla[i].nombre === gameState.team) { miPos = i + 1; break; } }
+    var palmares = gameState.palmaresClub[gameState.team] || [];
+    var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+    var seasonStr = m ? m[1] : '2026-27';
+    var titulosEstaTemp = palmares.filter(function(t) { return t._nuevas && t._nuevas.indexOf(seasonStr) !== -1; });
+    var nuevoPresupuesto = calcularNuevoPresupuesto(miPos, numEq, titulosEstaTemp.length);
+    gameState.budget = nuevoPresupuesto;
+
+    // Evaluar descenso
+    if (miPos > numEq - 3) {
+        enviarMensaje('Directiva', '\u26a0\ufe0f Evaluaci\u00f3n de temporada',
+            'El equipo ha descendido esta temporada. La directiva aplica un recorte presupuestario. El nuevo presupuesto es de ' + formatearPresupuesto(nuevoPresupuesto) + '.');
+    }
+
+    procesarRetornoCesiones();
+    iniciarNuevaTemporada();
+
+    restaurarPanelClub();
+    document.getElementById('dashJornada').innerText = 'Jornada 1 - Nueva Temporada';
+    document.getElementById('dashHomeTeam').innerText = gameState.team;
+    document.getElementById('dashAwayTeam').innerText = gameState.opponent;
+    document.getElementById('dashStadiumName').innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + gameState.stadium;
+    document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
+    if (gameState.budget < 0) document.getElementById('gameBudget').style.color = '#ef4444';
+    goToScreen('screen-game');
+    var btnInicio = document.querySelector('.nav-tab-btn');
+    if (btnInicio) switchGameTab(btnInicio, 'tab-inicio');
+    renderInbox();
+}
+
 function iniciarNuevaTemporada() {
     if (gameState.patrocinadorActual) {
         gameState.patrocinadorActual.temporadasRestantes--;
@@ -2273,6 +2458,7 @@ function iniciarNuevaTemporada() {
         if (tabla.length > 0 && tabla[0].nombre) {
             registrarTitulo(tabla[0].nombre, 'Primera División', seasonStr);
         }
+        if (gameState.playoff) gameState.playoff = null;
         if (gameState.country === 'España' && tabla.length >= 4) {
             var campeonLiga = tabla[0].nombre;
             var subLiga = tabla[1].nombre;
@@ -2423,17 +2609,48 @@ function getRolIcon(rol) {
 }
 
 function asignarRolesIniciales() {
-    if (!gameState.squad) return;
-    var ordenados = gameState.squad.slice().sort(function(a, b) { return b.rating - a.rating; });
-    ordenados.forEach(function(p, idx) {
-        if (idx < 2) p.rol = 'clave';
-        else if (idx < 7) p.rol = 'primer';
-        else if (idx < 11) p.rol = 'rotacion';
-        else if (p.age <= 21 && p.rating < 70) p.rol = 'promesa';
-        else p.rol = 'suplente';
+    if (!gameState.squad || gameState.squad.length === 0) return;
+    gameState.squad.forEach(function(p) {
         if (p.moral === undefined) p.moral = 4;
         if (p.jornadasSinJugar === undefined) p.jornadasSinJugar = 0;
+        p.rol = 'suplente';
     });
+    var formation = getFormacionActiva();
+    var xiIds = {};
+    var xi = seleccionarXI(gameState.squad, formation).slice(0, 11);
+    xi.forEach(function(p) { xiIds[p.id] = true; });
+
+    var usadosXI = [];
+    xi.forEach(function(p) {
+        var encontrado = null;
+        for (var i = 0; i < gameState.squad.length; i++) {
+            if (gameState.squad[i].id === p.id) { encontrado = gameState.squad[i]; break; }
+        }
+        if (encontrado) {
+            encontrado.rol = 'primer';
+            usadosXI.push(encontrado);
+        }
+    });
+
+    usadosXI.sort(function(a, b) { return b.rating - a.rating; });
+    for (var i = 0; i < Math.min(2, usadosXI.length); i++) {
+        usadosXI[i].rol = 'clave';
+    }
+
+    var grupos = { PO: [], DEF: [], MC: [], ATA: [] };
+    gameState.squad.forEach(function(p) {
+        if (xiIds[p.id]) return;
+        var g = getGrupoPos(p.pos);
+        if (grupos[g]) grupos[g].push(p);
+    });
+    for (var g in grupos) {
+        grupos[g].sort(function(a, b) { return b.rating - a.rating; });
+        grupos[g].forEach(function(p, idx) {
+            if (idx === 0) p.rol = 'rotacion';
+            else if (p.age <= 21 && p.rating < 65) p.rol = 'promesa';
+            else p.rol = 'suplente';
+        });
+    }
 }
 
 function actualizarMoralPostPartido() {
@@ -3901,6 +4118,52 @@ function simularPartidoCopa(local, visitante) {
     return resFinal;
 }
 
+function simularRondaPlayoff(orden) {
+    if (!gameState.playoff) return;
+    var ronda = gameState.playoff.rondas[orden];
+    if (!ronda || ronda.completada || ronda.partidos.length === 0) return;
+    var ganadores = [];
+    ronda.partidos.forEach(function(p) {
+        if (p.resultado) {
+            var gan = p.resultado.golesL > p.resultado.golesV ? p.local : p.visitante;
+            ganadores.push(gan);
+            return;
+        }
+        var res = simularPartidoCopa(p.local, p.visitante);
+        p.resultado = res;
+        var ganador = res.golesL > res.golesV ? p.local : p.visitante;
+        if (orden % 2 === 1 && p.resultadoIda) {
+            var globalL = p.resultadoIda.golesL + res.golesL;
+            var globalV = p.resultadoIda.golesV + res.golesV;
+            if (globalL !== globalV) {
+                ganador = globalL > globalV ? p.local : p.visitante;
+            }
+        }
+        ganadores.push(ganador);
+    });
+    ronda.completada = true;
+
+    if (orden < gameState.playoff.rondas.length - 1) {
+        var sigRonda = gameState.playoff.rondas[orden + 1];
+        for (var i = 0; i < ganadores.length; i += 2) {
+            if (i + 1 < ganadores.length) {
+                sigRonda.partidos.push({ local: ganadores[i], visitante: ganadores[i + 1], resultado: null, resultadoIda: null });
+            }
+        }
+    } else {
+        gameState.playoff.campeon = ganadores[0] || null;
+        gameState.playoff.completado = true;
+        if (gameState.playoff.campeon) {
+            var m = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+            var seasonStr = m ? m[1] : '2026-27';
+            registrarTitulo(gameState.playoff.campeon, 'Playoff Ascenso', seasonStr);
+            enviarMensaje('LaLiga', '\ud83c\udfc6 Playoff de Ascenso',
+                '\u00a1' + gameState.playoff.campeon + ' asciende a Primera Divisi\u00f3n tras ganar el playoff de ascenso ' + seasonStr + '!');
+            renderInbox();
+        }
+    }
+}
+
 function simularRondaCopa(orden) {
     var ronda = gameState.copa.rondas[orden];
     if (!ronda || ronda.completada || ronda.partidos.length === 0) return;
@@ -4445,9 +4708,10 @@ function renderCopaEnClasificacion(nombreCopa) {
         return;
     }
 
-    var copaData = esSupercopa ? gameState.supercopa : gameState.copa;
-    if (!esSupercopa && !gameState.copa) generarCuadroCopa();
-    copaData = esSupercopa ? gameState.supercopa : gameState.copa;
+    var esPlayoff = nombreCopa === 'Playoff Ascenso';
+    var copaData = esSupercopa ? gameState.supercopa : esPlayoff ? gameState.playoff : gameState.copa;
+    if (!esSupercopa && !esPlayoff && !gameState.copa) generarCuadroCopa();
+    copaData = esSupercopa ? gameState.supercopa : esPlayoff ? gameState.playoff : gameState.copa;
 
     if (!copaData || !copaData.rondas) {
         var msg = esSupercopa ? 'La Supercopa de Espa\u00f1a se disputar\u00e1 a partir de la segunda temporada.' : 'No hay datos disponibles.';
@@ -4507,10 +4771,13 @@ var _torneoLigaActual = null;
 var _copaFilterRound = 0;
 
 function obtenerCopasPais(pais) {
-    if (pais === 'España') return ['Copa del Rey', 'Supercopa de España', 'Champions League', 'Europa League', 'Conference League'];
-    if (pais === 'Inglaterra') return ['FA Cup', 'Champions League', 'Europa League', 'Conference League'];
-    if (pais === 'Italia') return ['Coppa Italia', 'Champions League', 'Europa League', 'Conference League'];
-    return [];
+    var copas = [];
+    if (pais === 'España') copas = ['Copa del Rey', 'Supercopa de España', 'Champions League', 'Europa League', 'Conference League'];
+    else if (pais === 'Inglaterra') copas = ['FA Cup', 'Champions League', 'Europa League', 'Conference League'];
+    else if (pais === 'Italia') copas = ['Coppa Italia', 'Champions League', 'Europa League', 'Conference League'];
+    else return [];
+    if (gameState.playoff) copas.push('Playoff Ascenso');
+    return copas;
 }
 
 function calcularClasificadosEuropeos(pais, liga) {
@@ -5691,6 +5958,73 @@ function procesarRetornoCesiones() {
 function nextMatch() {
     var jornadaAnterior = (gameState.matchday || 1) - 1;
     var diasDescanso = 7;
+
+    // Registrar resultado del playoff del usuario si jugó
+    if (gameState.playoff && !gameState.playoff.completado) {
+        var fixt = gameState.fixture;
+        if (fixt && fixt[jornadaAnterior]) {
+            var jorP = fixt[jornadaAnterior];
+            for (var fmPO = 0; fmPO < jorP.partidos.length; fmPO++) {
+                var fpPO = jorP.partidos[fmPO];
+                if (fpPO && fpPO.jugado && (fpPO.local === gameState.team || fpPO.visitante === gameState.team)) {
+                    for (var prR = 0; prR < gameState.playoff.rondas.length; prR++) {
+                        var rRonda = gameState.playoff.rondas[prR];
+                        if (rRonda.completada) continue;
+                        for (var pmR = 0; pmR < rRonda.partidos.length; pmR++) {
+                            var pR = rRonda.partidos[pmR];
+                            if (pR.resultado) continue;
+                            if ((pR.local === gameState.team || pR.visitante === gameState.team)) {
+                                var golesL = fpPO.local === gameState.team ? fpPO.golesL : fpPO.golesV;
+                                var golesV = fpPO.local === gameState.team ? fpPO.golesV : fpPO.golesL;
+                                pR.resultado = { golesL: golesL, golesV: golesV, tipo: 'normal' };
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    var hayResultados = true;
+                    for (var rr = 0; rr < gameState.playoff.rondas.length; rr++) {
+                        for (var mr = 0; mr < gameState.playoff.rondas[rr].partidos.length; mr++) {
+                            if (!gameState.playoff.rondas[rr].partidos[mr].resultado) { hayResultados = false; break; }
+                        }
+                        if (hayResultados && rr === gameState.playoff.rondas.length - 1) {
+                            var ganadoresR = [];
+                            gameState.playoff.rondas[rr].partidos.forEach(function(pp) {
+                                var g = pp.resultado.golesL > pp.resultado.golesV ? pp.local : pp.visitante;
+                                if (rr % 2 === 1 && pp.resultadoIda) {
+                                    var gl = pp.resultadoIda.golesL + pp.resultado.golesL;
+                                    var gv = pp.resultadoIda.golesV + pp.resultado.golesV;
+                                    if (gl !== gv) g = gl > gv ? pp.local : pp.visitante;
+                                }
+                                ganadoresR.push(g);
+                            });
+                            gameState.playoff.rondas[rr].completada = true;
+                            if (rr < gameState.playoff.rondas.length - 1) {
+                                for (var gi = 0; gi < ganadoresR.length; gi += 2) {
+                                    if (gi + 1 < ganadoresR.length) {
+                                        gameState.playoff.rondas[rr + 1].partidos.push({ local: ganadoresR[gi], visitante: ganadoresR[gi + 1], resultado: null, resultadoIda: null });
+                                    }
+                                }
+                            } else {
+                                gameState.playoff.campeon = ganadoresR[0] || null;
+                                gameState.playoff.completado = true;
+                                if (gameState.playoff.campeon) {
+                                    var mPO = gameState.currentDate.match(/Temporada (\d{4}-\d{2})/);
+                                    var seasonStrPO = mPO ? mPO[1] : '2026-27';
+                                    registrarTitulo(gameState.playoff.campeon, 'Playoff Ascenso', seasonStrPO);
+                                    enviarMensaje('LaLiga', '\ud83c\udfc6 Playoff de Ascenso',
+                                        '\u00a1' + gameState.playoff.campeon + ' asciende a Primera Divisi\u00f3n tras ganar el playoff de ascenso ' + seasonStrPO + '!');
+                                    renderInbox();
+                                }
+                            }
+                        }
+                        if (!hayResultados) break;
+                    }
+                    break;
+                }
+            }
+        }
+    }
     if (gameState.calendario && gameState.calendario[jornadaAnterior]) {
         if (gameState.calendario[jornadaAnterior].partidos.length > 1) diasDescanso = 3;
     }
@@ -5747,16 +6081,74 @@ function nextMatch() {
     }
 
     if (gameState.matchday > gameState.totalMatchdays) {
-        restaurarPanelClub();
-        iniciarNuevaTemporada();
-        document.getElementById('dashJornada').innerText = 'Jornada 1 - Nueva Temporada';
-        document.getElementById('dashHomeTeam').innerText = gameState.team;
-        document.getElementById('dashAwayTeam').innerText = gameState.opponent;
-        document.getElementById('dashStadiumName').innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + gameState.stadium;
-        goToScreen('screen-game');
-        var btnInicio = document.querySelector('.nav-tab-btn');
-        if (btnInicio) switchGameTab(btnInicio, 'tab-inicio');
-        return;
+        var equiposLiga = Database.getTeams(gameState.country, gameState.league);
+        var esSegunda = equiposLiga && equiposLiga.length === 22;
+
+        if (esSegunda && !gameState.playoff) {
+            var fixtureP = gameState.fixturesPorLiga[gameState.league] || gameState.fixture;
+            var tablaP = fixtureP ? calcularClasificacion(equiposLiga, fixtureP, gameState.totalMatchdays || 42) : [];
+            if (tablaP.length >= 6) {
+                gameState.playoff = {
+                    rondas: [
+                        { nombre: 'Semifinal Ida', orden: 0, partidos: [
+                            { local: tablaP[2].nombre, visitante: tablaP[5].nombre, resultado: null, resultadoIda: null },
+                            { local: tablaP[3].nombre, visitante: tablaP[4].nombre, resultado: null, resultadoIda: null }
+                        ], completada: false },
+                        { nombre: 'Semifinal Vuelta', orden: 1, partidos: [], completada: false },
+                        { nombre: 'Final Ida', orden: 2, partidos: [], completada: false },
+                        { nombre: 'Final Vuelta', orden: 3, partidos: [], completada: false }
+                    ],
+                    campeon: null,
+                    completado: false
+                };
+                gameState.totalMatchdays += 4;
+                enviarMensaje('LaLiga', '\ud83c\udfc6 Comienza el playoff de ascenso',
+                    'El ' + gameState.team + (tablaP[2].nombre === gameState.team || tablaP[3].nombre === gameState.team || tablaP[4].nombre === gameState.team || tablaP[5].nombre === gameState.team ? ' ha clasificado al playoff de ascenso.' : ' no ha clasificado al playoff de ascenso.'));
+                renderInbox();
+            } else {
+                procesarFinTemporada();
+                return;
+            }
+        } else if (esSegunda && gameState.playoff && gameState.playoff.completado) {
+            gameState.playoff = null;
+            procesarFinTemporada();
+            return;
+        } else if (!esSegunda) {
+            procesarFinTemporada();
+            return;
+        }
+    }
+
+    if (gameState.playoff && !gameState.playoff.completado) {
+        var poRonda = null;
+        for (var pr = 0; pr < gameState.playoff.rondas.length; pr++) {
+            if (!gameState.playoff.rondas[pr].completada && gameState.playoff.rondas[pr].partidos.length > 0) {
+                poRonda = pr;
+                break;
+            }
+        }
+        if (poRonda !== null) {
+            var rondaPO = gameState.playoff.rondas[poRonda];
+            var usuarioJuegaPO = false;
+            rondaPO.partidos.forEach(function(p) {
+                if (p.local === gameState.team || p.visitante === gameState.team) usuarioJuegaPO = true;
+            });
+            if (!usuarioJuegaPO) {
+                simularRondaPlayoff(poRonda);
+            } else {
+                for (var pi = 0; pi < rondaPO.partidos.length; pi++) {
+                    if (rondaPO.partidos[pi].local === gameState.team || rondaPO.partidos[pi].visitante === gameState.team) {
+                        var popp = rondaPO.partidos[pi];
+                        gameState.opponent = popp.local === gameState.team ? popp.visitante : popp.local;
+                        if (poRonda % 2 === 1 && popp.resultadoIda) {
+                            var idaGoles = popp.resultadoIda;
+                        }
+                        break;
+                    }
+                }
+                gameState.currentDate = 'Temporada 2026-27 - Playoff J' + (gameState.matchday);
+            }
+        }
     }
 
     gameState.currentDate = 'Temporada 2026-27 - Jornada ' + gameState.matchday;
@@ -5839,6 +6231,7 @@ function obtenerEstadoJuego() {
         patrocinadorActual: gameState.patrocinadorActual,
         ofertasPatrocinio: gameState.ofertasPatrocinio,
         supercopa: gameState.supercopa,
+        playoff: gameState.playoff,
         estiloPresion: gameState.estiloPresion,
         formacion: gameState.formacion,
         objetivoTemporada: gameState.objetivoTemporada,
@@ -5904,6 +6297,7 @@ function cargarPartida(slotId) {
     gameState.patrocinadorActual = data.patrocinadorActual || null;
     gameState.ofertasPatrocinio = data.ofertasPatrocinio || [];
     gameState.supercopa = data.supercopa || null;
+    gameState.playoff = data.playoff || null;
     gameState.estiloPresion = data.estiloPresion || 'pesada';
     gameState.formacion = data.formacion || '4-4-2 Estándar';
     if (data.objetivoTemporada) {
