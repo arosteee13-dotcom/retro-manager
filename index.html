@@ -134,6 +134,7 @@
                     <label style="cursor:pointer;"><input type="checkbox" checked> Efectos de Sonido 8-Bit</label>
                     <label style="cursor:pointer;"><input type="checkbox" checked> Escanlines CRT Retro</label>
                     <label style="cursor:pointer;"><input type="checkbox"> Modo Simulación Rápida</label>
+                    <label style="cursor:pointer;border-top:1px solid #334155;padding-top:8px;margin-top:4px;"><input type="checkbox" id="chkDebugSim"> ⚡ Habilitar botón de simulación rápida de temporada</label>
                 </div>
             </div>
             <div class="footer-nav">
@@ -314,6 +315,7 @@
                                             <th>PJ</th>
                                             <th>GOL</th>
                                             <th>ASI</th>
+                                            <th>NOT</th>
                                             <th>TA</th>
                                             <th>TR</th>
                                         </tr>
@@ -641,6 +643,9 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn-retro" id="btnSimularTemporada" onclick="simularHastaFinDeTemporada()" style="display:none;background:#eab308;color:#0f172a;border-color:#eab308;font-weight:bold;font-size:9px;padding:8px 6px;">
+                            <i class="fa-solid fa-bolt"></i> SIMULAR TEMPORADA
+                        </button>
                         <button class="btn-retro green btn-sm" id="btnGuardarPartida" onclick="openSlotsModal('save')">
                             <i class="fa-solid fa-floppy-disk"></i> GUARDAR PARTIDA
                         </button>
@@ -827,6 +832,7 @@
             <i class="fa-solid fa-trophy" style="color:#eab308;font-size:20px;"></i>
             <h3 style="font-family:'Press Start 2P',cursive;font-size:11px;color:#eab308;margin:0;">FIN DE TEMPORADA</h3>
             <span style="margin-left:auto;font-size:11px;color:#64748b;" id="finTempSeason"></span>
+            <button onclick="cerrarModalFinTemporada()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px;padding:0 4px;margin-left:8px;" title="Cerrar">✕</button>
         </div>
         <div id="finTemporadaContent" style="padding:10px 0;overflow-y:auto;max-height:400px;"></div>
         <div style="border-top:1px solid #263342;padding-top:10px;text-align:center;">
