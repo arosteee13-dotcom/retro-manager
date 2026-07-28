@@ -260,6 +260,8 @@
                                 </div>
                             </div>
                             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;" id="sponsorSection"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="gastosFijosSection"></div>
+                            <div id="balanceMensual" style="display:flex;align-items:center;gap:8px;padding:4px 6px;background:#0f172a;border:1px solid #334155;border-radius:4px;font-size:10px;color:#94a3b8;flex-shrink:0;"></div>
                             <div style="font-size:11px;color:#38bdf8;padding:2px 4px;border-bottom:1px solid #1e293b;"><i class="fa-solid fa-chart-line"></i> MOVIMIENTOS ECONÓMICOS</div>
                             <div id="finMovimientos" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
                         </div>
@@ -306,6 +308,7 @@
                                             <th>#</th>
                                             <th>Pos</th>
                                             <th>Jugador</th>
+                                            <th>Rol</th>
                                             <th>Mor</th>
                                             <th>Nac</th>
                                             <th>PJ</th>
@@ -700,10 +703,11 @@
             <div class="stat-row" style="border: none; padding: 2px 0;"><span>Media</span><span id="playerModalRating" class="stat-val" style="color:#6ee7b7;">-</span></div>
             <div class="stat-row" style="border: none; padding: 2px 0;"><span>Valor</span><span id="playerModalVal" class="stat-val" style="color:#facc15;">-</span></div>
             <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Estado</span><span id="playerModalStamina" class="stat-val" style="color:#10b981;">-</span></div>
-            <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Rol</span><span id="playerModalRol" class="stat-val" style="color:#38bdf8;cursor:pointer;" onclick="toggleRolSelector()">Rotación <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i></span></div>
+            <div class="stat-row" style="border: none; padding: 2px 0; grid-column: span 2;"><span>Rol</span><span id="playerModalRol" class="stat-val" style="color:#38bdf8;cursor:pointer;" onclick="toggleRolSelector()">Primer Equipo <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i></span></div>
             <div id="rolSelectorContainer" style="display:none;grid-column:span 2;background:#0f172a;border:1px solid #334155;border-radius:4px;padding:4px;gap:2px;">
-                <div class="rol-option" onclick="cambiarRol('estrella')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-star" style="color:#eab308;"></i> Estrella</div>
-                <div class="rol-option" onclick="cambiarRol('rotacion')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-arrows-rotate" style="color:#38bdf8;"></i> Rotación</div>
+                <div class="rol-option" onclick="cambiarRol('clave')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-crown" style="color:#eab308;"></i> Jugador Clave</div>
+                <div class="rol-option" onclick="cambiarRol('primer')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-shirt" style="color:#38bdf8;"></i> Primer Equipo</div>
+                <div class="rol-option" onclick="cambiarRol('rotacion')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-arrows-rotate" style="color:#a855f7;"></i> Rotación</div>
                 <div class="rol-option" onclick="cambiarRol('suplente')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-chair" style="color:#94a3b8;"></i> Suplente</div>
                 <div class="rol-option" onclick="cambiarRol('promesa')" style="padding:3px 6px;cursor:pointer;border-radius:3px;font-size:11px;color:#e2e8f0;"><i class="fa-solid fa-seedling" style="color:#22c55e;"></i> Joven Promesa</div>
             </div>

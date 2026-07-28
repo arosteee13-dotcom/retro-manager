@@ -311,6 +311,38 @@ function firmarPatrocinio(idx) {
     renderFinanzasView();
 }
 
+function calcularGastosMensuales() {
+    var gastoEstadio = Math.round((gameState.capacity || 0) * 2) / 1000000;
+    var gastoCantera = Math.round((gameState.rating || 75) * 800) / 1000000;
+    return { estadio: gastoEstadio, cantera: gastoCantera, total: gastoEstadio + gastoCantera };
+}
+
+function actualizarColorPresupuesto() {
+    var el = document.getElementById('gameBudget');
+    if (el) el.style.color = gameState.budget < 0 ? '#ef4444' : '#facc15';
+    var fEl = document.getElementById('finPresupuesto');
+    if (fEl) fEl.style.color = gameState.budget < 0 ? '#ef4444' : '#facc15';
+}
+
+function procesarGastosMensuales() {
+    var gastos = calcularGastosMensuales();
+    gameState.budget -= gastos.total;
+    if (!gameState.historialTraspasos) gameState.historialTraspasos = [];
+    gameState.historialTraspasos.unshift({
+        fecha: 'J' + (gameState.matchday || 1),
+        tipo: 'gasto',
+        jugador: 'Mantenimiento Estadio + Cantera',
+        desde: gameState.team,
+        para: 'Gastos Fijos',
+        precio: gastos.total
+    });
+    actualizarColorPresupuesto();
+    document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
+    enviarMensaje('Departamento Financiero', '\ud83d\udcc9 Gastos de instalaciones',
+        'Gastos del mes procesados: Estadio (' + formatearPresupuesto(gastos.estadio) + ') y Cantera (' + formatearPresupuesto(gastos.cantera) + '). Total: ' + formatearPresupuesto(gastos.total) + '.');
+    renderInbox();
+}
+
 function procesarPagoPatrocinio() {
     if (!gameState.patrocinadorActual) return;
     var pago = gameState.patrocinadorActual.pagoMensual;
@@ -332,6 +364,7 @@ function procesarPagoPatrocinio() {
 
 function renderFinanzasView() {
     document.getElementById('finPresupuesto').innerText = formatearPresupuesto(gameState.budget);
+    document.getElementById('finPresupuesto').style.color = gameState.budget < 0 ? '#ef4444' : '#facc15';
     var valorTotal = 0;
     gameState.squad.forEach(function(p) {
         var valStr = (p.val || '0M\u20ac').replace('\u20ac', '').replace('M', '').replace('K', '');
@@ -343,7 +376,7 @@ function renderFinanzasView() {
     var ingresos = 0, gastos = 0;
     (gameState.historialTraspasos || []).forEach(function(t) {
         if (t.tipo === 'venta' || t.tipo === 'cesion' || t.tipo === 'sponsor') ingresos += t.precio;
-        if (t.tipo === 'compra') gastos += t.precio;
+        if (t.tipo === 'compra' || t.tipo === 'gasto') gastos += t.precio;
     });
     var neto = ingresos - gastos;
     var netoEl = document.getElementById('finBalance');
@@ -374,6 +407,29 @@ function renderFinanzasView() {
         }
     }
 
+    var gfEl = document.getElementById('gastosFijosSection');
+    if (gfEl) {
+        var g = calcularGastosMensuales();
+        gfEl.innerHTML = '<div class="fin-card" style="border-left:4px solid #ef4444;">' +
+            '<span class="fin-label">MANT. ESTADIO</span>' +
+            '<span class="fin-val" style="color:#ef4444;font-size:13px;">' + formatearPresupuesto(g.estadio) + '<span style="font-size:9px;color:#94a3b8;">/per</span></span></div>' +
+            '<div class="fin-card" style="border-left:4px solid #ef4444;">' +
+            '<span class="fin-label">CANTERA</span>' +
+            '<span class="fin-val" style="color:#ef4444;font-size:13px;">' + formatearPresupuesto(g.cantera) + '<span style="font-size:9px;color:#94a3b8;">/per</span></span></div>';
+    }
+
+    var bmEl = document.getElementById('balanceMensual');
+    if (bmEl) {
+        var g2 = calcularGastosMensuales();
+        var ingreso = gameState.patrocinadorActual ? gameState.patrocinadorActual.pagoMensual : 0;
+        var balance = ingreso - g2.total;
+        var colorBal = balance >= 0 ? '#22c55e' : '#ef4444';
+        var iconoBal = balance >= 0 ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
+        bmEl.innerHTML = iconoBal + ' Balance mensual: <span style="color:#94a3b8;">Ingresos</span> ' + formatearPresupuesto(ingreso) +
+            ' <span style="color:#94a3b8;">- Gastos</span> ' + formatearPresupuesto(g2.total) +
+            ' <span style="color:' + colorBal + ';font-weight:bold;">= ' + (balance >= 0 ? '+' : '') + formatearPresupuesto(balance) + '</span>';
+    }
+
     var lista = document.getElementById('finMovimientos');
     if (!lista) return;
     var h = gameState.historialTraspasos || [];
@@ -383,7 +439,7 @@ function renderFinanzasView() {
     }
     var html = '';
     h.forEach(function(t) {
-        var icono = t.tipo === 'venta' ? '<i class="fa-solid fa-coins"></i>' : t.tipo === 'cesion' ? '<i class="fa-solid fa-file-contract"></i>' : t.tipo === 'sponsor' ? '<i class="fa-solid fa-handshake"></i>' : t.tipo === 'compra' ? '<i class="fa-solid fa-cart-shopping"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
+        var icono = t.tipo === 'venta' ? '<i class="fa-solid fa-coins"></i>' : t.tipo === 'cesion' ? '<i class="fa-solid fa-file-contract"></i>' : t.tipo === 'sponsor' ? '<i class="fa-solid fa-handshake"></i>' : t.tipo === 'gasto' ? '<i class="fa-solid fa-wrench"></i>' : t.tipo === 'compra' ? '<i class="fa-solid fa-cart-shopping"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
         var color = (t.tipo === 'venta' || t.tipo === 'cesion' || t.tipo === 'sponsor') ? '#22c55e' : '#ef4444';
         var signo = (t.tipo === 'venta' || t.tipo === 'cesion' || t.tipo === 'sponsor') ? '+' : '-';
         html += '<div class="tactic-list-item" style="cursor:default;padding:3px 6px;">' +
@@ -1250,6 +1306,7 @@ function renderSquadStats() {
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
             '<td>' + p.name + getEstadoIcono(p) + '</td>' +
+            '<td style="text-align:center;">' + getRolIcon(p.rol || 'rotacion') + '<br><span style="font-size:8px;color:#94a3b8;">' + getRolAbreviado(p.rol || 'rotacion') + '</span></td>' +
             '<td style="text-align:center;">' + getMoralIcon(p) + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + (st.partidos || 0) + '</td>' +
@@ -1262,7 +1319,7 @@ function renderSquadStats() {
     });
     if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
         var hr = tbody.insertRow();
-        hr.innerHTML = '<td colspan="10" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
+        hr.innerHTML = '<td colspan="11" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
         gameState.cedidosFuera.forEach(function(cr) {
             var r = tbody.insertRow();
             r.style.color = '#64748b';
@@ -1270,6 +1327,7 @@ function renderSquadStats() {
                 '<td><span class="dorsal-badge" style="background:#334155;">' + (cr.dorsal || '-') + '</span></td>' +
                 '<td><span class="pos-badge pos-' + cr.pos + '">' + cr.pos + '</span></td>' +
                 '<td>' + cr.nombre + ' <span style="color:#eab308;font-size:10px;">→ ' + cr.destino + '</span></td>' +
+                '<td style="text-align:center;font-size:10px;color:#64748b;">-</td>' +
                 '<td style="text-align:center;">-</td>' +
                 '<td style="font-size:20px;">' + flagEmoji(cr.nacionalidad || 'es') + '</td>' +
                 '<td>' + (cr.partidos || 0) + '</td>' +
@@ -2349,16 +2407,28 @@ function getMoralIcon(p) {
 }
 
 function getRolTexto(rol) {
-    var textos = { estrella: 'Estrella', rotacion: 'Rotaci\u00f3n', suplente: 'Suplente', promesa: 'Joven Promesa' };
+    var textos = { clave: 'Jugador Clave', primer: 'Primer Equipo', rotacion: 'Rotaci\u00f3n', suplente: 'Suplente', promesa: 'Joven Promesa' };
     return textos[rol] || 'Rotaci\u00f3n';
+}
+
+function getRolAbreviado(rol) {
+    var map = { clave: 'CLA', primer: 'PRI', rotacion: 'ROT', suplente: 'SUP', promesa: 'JOV' };
+    return map[rol] || 'ROT';
+}
+
+function getRolIcon(rol) {
+    var icons = { clave: 'fa-crown', primer: 'fa-shirt', rotacion: 'fa-arrows-rotate', suplente: 'fa-chair', promesa: 'fa-seedling' };
+    var colors = { clave: '#eab308', primer: '#38bdf8', rotacion: '#a855f7', suplente: '#94a3b8', promesa: '#22c55e' };
+    return '<i class="fa-solid ' + (icons[rol] || 'fa-arrows-rotate') + '" style="color:' + (colors[rol] || '#a855f7') + ';font-size:12px;" title="' + getRolTexto(rol) + '"></i>';
 }
 
 function asignarRolesIniciales() {
     if (!gameState.squad) return;
     var ordenados = gameState.squad.slice().sort(function(a, b) { return b.rating - a.rating; });
     ordenados.forEach(function(p, idx) {
-        if (idx < 3) p.rol = 'estrella';
-        else if (idx < 8) p.rol = 'rotacion';
+        if (idx < 2) p.rol = 'clave';
+        else if (idx < 7) p.rol = 'primer';
+        else if (idx < 11) p.rol = 'rotacion';
         else if (p.age <= 21 && p.rating < 70) p.rol = 'promesa';
         else p.rol = 'suplente';
         if (p.moral === undefined) p.moral = 4;
@@ -2380,8 +2450,10 @@ function actualizarMoralPostPartido() {
             if (stam < 80) { p.jornadasSinJugar = 0; return; }
             p.jornadasSinJugar = (p.jornadasSinJugar || 0) + 1;
             var umbral = 5;
-            if (p.rol === 'estrella') umbral = 2;
+            if (p.rol === 'clave') umbral = 1;
+            else if (p.rol === 'primer') umbral = 2;
             else if (p.rol === 'rotacion') umbral = 3;
+            else if (p.rol === 'estrella') umbral = 2;
             if (p.jornadasSinJugar >= umbral) {
                 p.moral = Math.max(1, (p.moral || 4) - 1);
             }
@@ -2739,6 +2811,7 @@ function ficharJugador(jugadorId, equipoOrigen, precio) {
         if (squadOrigen[i].id === jugadorId) { jugador = squadOrigen[i]; idx = i; break; }
     }
     if (!jugador) return;
+    if (gameState.budget < 0) { showModal('PRESUPUESTO', 'El club est\u00e1 en n\u00fameros rojos. No puedes fichar hasta saldar la deuda.'); return; }
     if (gameState.budget < precio) { showModal('PRESUPUESTO', 'No tienes fondos suficientes para fichar a ' + jugador.name + '.'); return; }
 
     gameState.budget -= precio;
@@ -5204,9 +5277,11 @@ function runMatchSimulation() {
     else if (ratio <= 1.4) pct = 0.6 + Math.random() * 0.15;
     else pct = 0.3 + Math.random() * 0.15;
     var asistencia = Math.round(gameState.capacity * pct);
-    var recaudacion = (asistencia * (gameState.ticketPrice || precioBase)) / 1000000;
+    var recaudacionBruta = (asistencia * (gameState.ticketPrice || precioBase)) / 1000000;
+    var costeOperativo = Math.round(asistencia * 1.5) / 1000000;
+    var recaudacion = Math.max(0, recaudacionBruta - costeOperativo);
     gameState.budget += recaudacion;
-    commentary.innerHTML += '<p style="color:#94a3b8;">Asistencia: ' + asistencia.toLocaleString() + ' espect. Recaudaci\u00f3n: ' + formatearPresupuesto(recaudacion) + '.</p>';
+    commentary.innerHTML += '<p style="color:#94a3b8;">Asistencia: ' + asistencia.toLocaleString() + ' espect. Ingreso neto: ' + formatearPresupuesto(recaudacion) + ' (costes operativos: ' + formatearPresupuesto(costeOperativo) + ').</p>';
     document.getElementById('gameBudget').innerText = formatearPresupuesto(gameState.budget);
 
     // Simular Supercopa antes del partido de Liga
@@ -5667,6 +5742,9 @@ function nextMatch() {
     if (gameState.patrocinadorActual && gameState.matchday % 4 === 0) {
         procesarPagoPatrocinio();
     }
+    if (gameState.matchday % 4 === 0) {
+        procesarGastosMensuales();
+    }
 
     if (gameState.matchday > gameState.totalMatchdays) {
         restaurarPanelClub();
@@ -6120,7 +6198,7 @@ function cambiarRol(rol) {
     var p = buscarEnSquad(_playerModalId);
     if (!p) return;
     p.rol = rol;
-    document.getElementById('playerModalRol').innerHTML = getRolTexto(rol) + ' <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i>';
+    document.getElementById('playerModalRol').innerHTML = getRolIcon(rol) + ' ' + getRolTexto(rol) + ' <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i>';
     document.getElementById('rolSelectorContainer').style.display = 'none';
     var opts = document.getElementById('rolSelectorContainer').querySelectorAll('.rol-option');
     opts.forEach(function(o) {
@@ -6152,7 +6230,7 @@ function showPlayerDetail(p, esPropio) {
     document.getElementById('playerModalStamina').innerText = p.stamina || '100%';
     var rolActual = p.rol || 'rotacion';
     if (esPropio) {
-        document.getElementById('playerModalRol').innerHTML = getRolTexto(rolActual) + ' <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i>';
+        document.getElementById('playerModalRol').innerHTML = getRolIcon(rolActual) + ' ' + getRolTexto(rolActual) + ' <i class="fa-solid fa-pen" style="font-size:9px;color:#64748b;margin-left:4px;"></i>';
         document.getElementById('rolSelectorContainer').style.display = 'none';
         var opts = document.getElementById('rolSelectorContainer').querySelectorAll('.rol-option');
         opts.forEach(function(o) {
@@ -6166,7 +6244,7 @@ function showPlayerDetail(p, esPropio) {
             }
         });
     } else {
-        document.getElementById('playerModalRol').innerText = getRolTexto(rolActual);
+        document.getElementById('playerModalRol').innerHTML = getRolIcon(rolActual) + ' ' + getRolTexto(rolActual);
         document.getElementById('rolSelectorContainer').style.display = 'none';
     }
     var m = p.moral || 4;
