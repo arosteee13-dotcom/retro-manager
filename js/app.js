@@ -659,6 +659,82 @@ function populateTeams(countryName, leagueName) {
     }
 }
 
+var _cesionesSalida = {
+    'Athletic Club': [
+        { nombre: 'Ibai Sanz', pos: 'DEL', destino: 'Córdoba CF' },
+        { nombre: 'Eder García', pos: 'MED', destino: 'Córdoba CF' }
+    ],
+    'Atlético de Madrid': [
+        { nombre: 'C. Lenglet', pos: 'DEF', destino: 'Benfica' },
+        { nombre: 'H. Moldovan', pos: 'POR', destino: 'Eyupspor' }
+    ],
+    'RC Celta': [
+        { nombre: 'Manu Sánchez', pos: 'DEF', destino: 'Levante' },
+        { nombre: 'Carlos Dotor', pos: 'MED', destino: 'Málaga' },
+        { nombre: 'Hugo Sotelo', pos: 'MED', destino: 'Levante' }
+    ],
+    'Deportivo Alavés': [
+        { nombre: 'Unai Ropero', pos: 'DEL', destino: 'Racing Ferrol' },
+        { nombre: 'Adrián Pica', pos: 'DEF', destino: 'Penafiel' },
+        { nombre: 'Egoitz Muñoz', pos: 'DEF', destino: 'Córdoba CF' },
+        { nombre: 'G. Albarracin', pos: 'MED', destino: 'NK Istra 1961' }
+    ],
+    'Elche': [
+        { nombre: 'A. Werner', pos: 'POR', destino: 'Rosario Central' }
+    ],
+    'Espanyol': [
+        { nombre: 'José Gragera', pos: 'MED', destino: 'Burgos CF' },
+        { nombre: 'Antoniu', pos: 'DEL', destino: 'Mallorca' }
+    ]
+};
+
+function inicializarCesiones() {
+    var salidas = gameState.team ? _cesionesSalida[gameState.team] : null;
+    if (salidas) {
+        salidas.forEach(function(s) {
+            for (var i = gameState.squad.length - 1; i >= 0; i--) {
+                if (gameState.squad[i].name === s.nombre) {
+                    var p = gameState.squad[i];
+                    gameState.squad.splice(i, 1);
+                    var finJornada = 38;
+                    var idEnDestino = 20000 + Math.floor(Math.random() * 90000);
+                    var squadD = obtenerSquadEquipo(s.destino);
+                    if (squadD) {
+                        var clone = JSON.parse(JSON.stringify(p));
+                        clone.id = idEnDestino;
+                        clone.esCedido = true;
+                        clone.equipoOrigen = gameState.team;
+                        clone.jornadaFinCesion = finJornada;
+                        clone.grupo = null;
+                        squadD.push(clone);
+                        _cachedSquads[s.destino] = squadD;
+                    }
+                    if (!gameState.cedidosFuera) gameState.cedidosFuera = [];
+                    gameState.cedidosFuera.push({
+                        id: p.id,
+                        nombre: p.name,
+                        pos: p.pos,
+                        rating: p.rating,
+                        edad: p.age,
+                        nacionalidad: p.nationality,
+                        altura: p.height,
+                        dorsal: p.dorsal,
+                        val: p.val,
+                        statsTemporada: p.statsTemporada || { partidos: 0, goles: 0, asistencias: 0, ta: 0, tr: 0 },
+                        lesionSemanas: p.lesionSemanas || 0,
+                        tipoLesion: p.tipoLesion || '',
+                        sancionSemanas: p.sancionSemanas || 0,
+                        destino: s.destino,
+                        idEnDestino: idEnDestino,
+                        jornadaFin: finJornada
+                    });
+                    break;
+                }
+            }
+        });
+    }
+}
+
 function startGame() {
     gameState.manager = document.getElementById('managerName').value || 'Mánager Retro';
     gameState.teamId = gameState.team;
@@ -667,6 +743,7 @@ function startGame() {
         gameState.squad = generateSquad(gameState.rating);
     }
 
+    inicializarCesiones();
     renderSquadTable();
     asignarGruposIniciales();
     renderTacticPitch();
@@ -1192,7 +1269,7 @@ function renderSquadTable() {
         tr.innerHTML =
             '<td><span class="dorsal-badge">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '">' + p.pos + '</span></td>' +
-            '<td>' + p.name + getEstadoIcono(p) + (p.enTransferibles ? ' <span style="font-size:8px;background:#92400e;color:#fbbf24;padding:1px 4px;border-radius:3px;font-weight:bold;">TRA</span>' : '') + (p.enCedibles ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + '</td>' +
+            '<td>' + p.name + getEstadoIcono(p) + (p.enTransferibles ? ' <span style="font-size:8px;background:#92400e;color:#fbbf24;padding:1px 4px;border-radius:3px;font-weight:bold;">TRA</span>' : '') + (p.enCedibles ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + (p.esCedido ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span> <span style="font-size:9px;color:#38bdf8;">\u2190 ' + (p.equipoOrigen || '?') + '</span>' : '') + '</td>' +
             '<td style="font-size: 20px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + p.age + '</td>' +
             '<td style="color:#6ee7b7;font-weight:bold;">' + p.rating + '</td>' +
@@ -1203,7 +1280,7 @@ function renderSquadTable() {
     });
     if (gameState.cedidosFuera && gameState.cedidosFuera.length > 0) {
         var hr = tbody.insertRow();
-        hr.innerHTML = '<td colspan="8" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS</td>';
+        hr.innerHTML = '<td colspan="8" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS A OTROS CLUBES</td>';
         gameState.cedidosFuera.forEach(function(cr) {
             var r = tbody.insertRow();
             r.style.color = '#64748b';
@@ -1729,6 +1806,21 @@ function abrirPlantillaRival(nombreEquipo) {
     });
     htmlInfo += '</tbody></table>';
 
+    var salidas = _cesionesSalida[nombreEquipo];
+    if (salidas && salidas.length > 0) {
+        htmlInfo += '<table class="squad-table" style="font-size:12px;margin-top:6px;"><thead><tr>' +
+            '<th colspan="8" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS A OTROS CLUBES</th>' +
+            '</tr></thead><tbody>';
+        salidas.forEach(function(s) {
+            htmlInfo += '<tr style="color:#64748b;">' +
+                '<td><span class="dorsal-badge" style="background:#334155;">—</span></td>' +
+                '<td><span class="pos-badge" style="font-size:8px;padding:1px 4px;">' + (s.pos || '—') + '</span></td>' +
+                '<td style="font-size:11px;">' + s.nombre + ' <span style="color:#eab308;font-size:10px;">\u2192 ' + s.destino + '</span></td>' +
+                '<td colspan="5"></td></tr>';
+        });
+        htmlInfo += '</tbody></table>';
+    }
+
     var htmlStats = '<table class="squad-table" style="font-size:12px;"><thead><tr>' +
         '<th>#</th><th>Pos</th><th>Jugador</th><th>Nac</th><th>PJ</th><th>GOL</th><th>ASI</th><th>TA</th><th>TR</th>' +
         '</tr></thead><tbody>';
@@ -1737,7 +1829,7 @@ function abrirPlantillaRival(nombreEquipo) {
         htmlStats += '<tr class="rival-player-row" data-rid="' + p.id + '" style="cursor:pointer;">' +
             '<td><span class="dorsal-badge" style="width:22px;height:22px;font-size:9px;">' + (p.dorsal || '-') + '</span></td>' +
             '<td><span class="pos-badge pos-' + p.pos + '" style="font-size:10px;width:24px;">' + p.pos + '</span></td>' +
-            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + (p.esCedido ? ' <span style="font-size:8px;background:#eab308;color:#000;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span>' : '') + '</td>' +
+            '<td style="font-size:11px;">' + p.name + getEstadoIcono(p) + (p.esCedido ? ' <span style="font-size:8px;background:#1e3a5f;color:#38bdf8;padding:1px 4px;border-radius:3px;font-weight:bold;">CED</span> <span style="font-size:9px;color:#38bdf8;">\u2190 ' + (p.equipoOrigen || '?') + '</span>' : '') + '</td>' +
             '<td style="font-size:16px;">' + flagEmoji(p.nationality) + '</td>' +
             '<td>' + (st.partidos || 0) + '</td>' +
             '<td style="color:#10b981;">' + (st.goles || 0) + '</td>' +
@@ -1746,6 +1838,20 @@ function abrirPlantillaRival(nombreEquipo) {
             '<td style="color:#fca5a5;">' + (st.tr || 0) + '</td></tr>';
     });
     htmlStats += '</tbody></table>';
+
+    if (salidas && salidas.length > 0) {
+        htmlStats += '<table class="squad-table" style="font-size:12px;margin-top:6px;"><thead><tr>' +
+            '<th colspan="9" style="color:#38bdf8;font-size:11px;padding:8px 4px;border-bottom:1px solid #1e293b;border-top:2px solid #334155;"><i class="fa-solid fa-handshake"></i> JUGADORES CEDIDOS A OTROS CLUBES</th>' +
+            '</tr></thead><tbody>';
+        salidas.forEach(function(s) {
+            htmlStats += '<tr style="color:#64748b;">' +
+                '<td><span class="dorsal-badge" style="background:#334155;">—</span></td>' +
+                '<td><span class="pos-badge" style="font-size:8px;padding:1px 4px;">' + (s.pos || '—') + '</span></td>' +
+                '<td style="font-size:11px;">' + s.nombre + ' <span style="color:#eab308;font-size:10px;">\u2192 ' + s.destino + '</span></td>' +
+                '<td colspan="6"></td></tr>';
+        });
+        htmlStats += '</tbody></table>';
+    }
 
     document.getElementById('rinfo').innerHTML = htmlInfo;
     document.getElementById('rstats').innerHTML = htmlStats;
@@ -4077,10 +4183,9 @@ function renderClasificacion() {
 }
 
 function renderCopaEnClasificacion(nombreCopa) {
+    var europeas = ['Champions League', 'Europa League', 'Conference League'];
+    var esEuropea = europeas.indexOf(nombreCopa) !== -1;
     var esSupercopa = nombreCopa === 'Supercopa de España';
-    var copaData = esSupercopa ? gameState.supercopa : gameState.copa;
-    if (!esSupercopa && !gameState.copa) generarCuadroCopa();
-    copaData = esSupercopa ? gameState.supercopa : gameState.copa;
 
     var thead = document.querySelector('#comp-clasificacion thead');
     if (thead) thead.style.display = 'none';
@@ -4090,8 +4195,51 @@ function renderCopaEnClasificacion(nombreCopa) {
     if (leyenda) leyenda.innerHTML = '';
     if (colStats) colStats.innerHTML = '';
 
+    if (esEuropea) {
+        var paisSel = _torneoPaisActual || gameState.country;
+        var ligaSel = _torneoLigaActual || gameState.league;
+        var cls = calcularClasificadosEuropeos(paisSel, ligaSel);
+        var iconos = { 'Champions League': '<i class="fa-solid fa-star" style="color:#eab308;"></i>', 'Europa League': '<i class="fa-solid fa-star" style="color:#f97316;"></i>', 'Conference League': '<i class="fa-solid fa-star" style="color:#22c55e;"></i>' };
+        var colores = { 'Champions League': '#3b82f6', 'Europa League': '#f97316', 'Conference League': '#22c55e' };
+        var listas = { 'Champions League': cls.champions, 'Europa League': cls.europa, 'Conference League': cls.conference };
+        var clasificados = listas[nombreCopa] || [];
+
+        var html = '<tr><td colspan="9" style="padding:6px 0;">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;border-bottom:1px solid #1e293b;padding-bottom:6px;">';
+        html += (iconos[nombreCopa] || '<i class="fa-solid fa-trophy"></i>') + ' <span style="font-size:13px;color:' + (colores[nombreCopa] || '#38bdf8') + ';font-weight:bold;">' + nombreCopa + '</span></div>';
+
+        if (clasificados.length === 0) {
+            html += '<div style="color:#64748b;font-size:12px;text-align:center;padding:15px;">No hay clasificados esta temporada.</div>';
+        } else {
+            var fixture = gameState.fixturesPorLiga[ligaSel] || gameState.fixture;
+            var equipos = Database.getTeams(paisSel, ligaSel);
+            var tabla = fixture ? calcularClasificacion(equipos || [], fixture, gameState.totalMatchdays || 38) : [];
+            html += '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px;">CLASIFICADOS ' + (gameState.currentDate.match(/Temporada (\d{4}-\d{2})/) || ['', ''])[1] + '</div>';
+            clasificados.forEach(function(n) {
+                var pos = '';
+                var pts = '';
+                for (var i = 0; i < tabla.length; i++) {
+                    if (tabla[i].nombre === n) { pos = i + 1; pts = tabla[i].pts; break; }
+                }
+                html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 4px;background:#0f172a;border-radius:4px;margin-bottom:2px;border-left:3px solid ' + (colores[nombreCopa] || '#38bdf8') + ';">' +
+                    '<span style="font-size:10px;color:#64748b;min-width:20px;">' + (pos ? pos + '\u00ba' : '') + '</span>' +
+                    '<span style="font-size:12px;color:#e2e8f0;flex:1;">' + n + '</span>' +
+                    '<span style="font-size:10px;color:#6ee7b7;font-weight:bold;">' + (pts ? pts + ' pts' : '') + '</span></div>';
+            });
+        }
+        html += '<div style="margin-top:10px;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:6px;text-align:center;font-size:10px;color:#64748b;">';
+        html += '<i class="fa-solid fa-info-circle"></i> Competici\u00f3n inactiva \u2014 disponible en pr\u00f3ximas actualizaciones al a\u00f1adir m\u00e1s ligas.</div>';
+        html += '</td></tr>';
+        container.innerHTML = html;
+        return;
+    }
+
+    var copaData = esSupercopa ? gameState.supercopa : gameState.copa;
+    if (!esSupercopa && !gameState.copa) generarCuadroCopa();
+    copaData = esSupercopa ? gameState.supercopa : gameState.copa;
+
     if (!copaData || !copaData.rondas) {
-        var msg = esSupercopa ? 'La Supercopa de España se disputará a partir de la segunda temporada.' : 'No hay datos disponibles.';
+        var msg = esSupercopa ? 'La Supercopa de Espa\u00f1a se disputar\u00e1 a partir de la segunda temporada.' : 'No hay datos disponibles.';
         container.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:#64748b;font-size:12px;">' + msg + '</td></tr>';
         return;
     }
@@ -4148,10 +4296,44 @@ var _torneoLigaActual = null;
 var _copaFilterRound = 0;
 
 function obtenerCopasPais(pais) {
-    if (pais === 'España') return ['Copa del Rey', 'Supercopa de España'];
-    if (pais === 'Inglaterra') return ['FA Cup'];
-    if (pais === 'Italia') return ['Coppa Italia'];
+    if (pais === 'España') return ['Copa del Rey', 'Supercopa de España', 'Champions League', 'Europa League', 'Conference League'];
+    if (pais === 'Inglaterra') return ['FA Cup', 'Champions League', 'Europa League', 'Conference League'];
+    if (pais === 'Italia') return ['Coppa Italia', 'Champions League', 'Europa League', 'Conference League'];
     return [];
+}
+
+function calcularClasificadosEuropeos(pais, liga) {
+    var equipos = Database.getTeams(pais, liga);
+    if (!equipos || equipos.length < 4) return { champions: [], europa: [], conference: [] };
+    var fixture = gameState.fixturesPorLiga[liga] || gameState.fixture;
+    var tabla = fixture ? calcularClasificacion(equipos, fixture, gameState.totalMatchdays || 38) : [];
+    if (tabla.length === 0 || tabla.every(function(t) { return t.pj === 0; })) {
+        tabla = equipos.slice().sort(function(a, b) { return (b.rating || 75) - (a.rating || 75); });
+        tabla = tabla.map(function(t) { return { nombre: t.name, pts: 0 }; });
+    }
+    var champions = [], europa = [], conference = [];
+
+    if (tabla.length >= 4) {
+        for (var i = 0; i < 4; i++) champions.push(tabla[i].nombre);
+        var copaCampeon = null;
+        if (pais === 'España') copaCampeon = gameState.copa ? gameState.copa.campeon : null;
+        else if (pais === 'Inglaterra') copaCampeon = gameState.copa ? gameState.copa.campeon : null;
+        else if (pais === 'Italia') copaCampeon = gameState.copa ? gameState.copa.campeon : null;
+
+        var europaSlot = tabla.length > 4 ? tabla[4].nombre : null;
+        if (copaCampeon && champions.indexOf(copaCampeon) === -1 && europa.indexOf(copaCampeon) === -1) {
+            europa.push(copaCampeon);
+            if (tabla.length > 4 && tabla[4].nombre !== copaCampeon) europa.push(tabla[4].nombre);
+        } else {
+            if (tabla.length > 4) europa.push(tabla[4].nombre);
+            if (tabla.length > 5) europa.push(tabla[5].nombre);
+        }
+
+        var confSlot = tabla.length > 5 ? tabla[5].nombre : null;
+        if (europa.indexOf(confSlot) !== -1 && tabla.length > 6) confSlot = tabla[6].nombre;
+        if (confSlot) conference.push(confSlot);
+    }
+    return { champions: champions, europa: europa, conference: conference };
 }
 
 function generarSupercopa() {
@@ -5271,6 +5453,20 @@ function procesarRetornoCesiones() {
         gameState.cedidosFuera = pendientes;
         enviarMensaje('Dirección Deportiva', '\ud83d\udcc4 Fin de cesión',
             devueltos.join(', ') + ' ha(n) regresado al club tras finalizar su cesión.');
+        renderInbox();
+    }
+
+    var devueltosCedidos = [];
+    for (var ci = gameState.squad.length - 1; ci >= 0; ci--) {
+        var cp = gameState.squad[ci];
+        if (cp.esCedido && cp.jornadaFinCesion && (gameState.matchday || 1) >= cp.jornadaFinCesion) {
+            devueltosCedidos.push(cp.name);
+            gameState.squad.splice(ci, 1);
+        }
+    }
+    if (devueltosCedidos.length > 0) {
+        enviarMensaje('Dirección Deportiva', '\ud83d\udcc4 Fin de cesión',
+            devueltosCedidos.join(', ') + ' ha(n) regresado a su club de origen tras finalizar su cesión.');
         renderInbox();
     }
 }
